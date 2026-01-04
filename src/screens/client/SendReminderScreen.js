@@ -1,10 +1,10 @@
 import { View, Text } from 'react-native'
 import React from 'react'
 
-export default function WelcomeScreen() {
+export default function SendReminderScreen() {
   return (
     <View>
-      <Text>WelcomeScreen</Text>
+      <Text>SendReminderScreen</Text>
     </View>
   )
 }

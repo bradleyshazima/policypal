@@ -1,0 +1,75 @@
+import React from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
+import { TouchableOpacity } from 'react-native';
+import { COLORS } from '../../constants/theme';
+
+import ClientsListScreen from '../../screens/main/ClientsListScreen';
+import AddClientScreen from '../../screens/client/AddClientScreen';
+import EditClientScreen from '../../screens/client/EditClientScreen';
+import ClientDetailScreen from '../../screens/client/ClientDetailScreen';
+
+const Stack = createNativeStackNavigator();
+
+const ClientsStackNavigator = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: COLORS.primary,
+        },
+        headerTintColor: COLORS.white,
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          fontSize: 18,
+        },
+      }}
+    >
+      <Stack.Screen 
+        name="ClientsList" 
+        component={ClientsListScreen}
+        options={{ 
+          headerTitle: 'Clients',
+        }}
+      />
+      <Stack.Screen 
+        name="AddClient" 
+        component={AddClientScreen}
+        options={({ navigation }) => ({
+          headerTitle: 'Add New Client',
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={24} color={COLORS.white} style={{ marginLeft: 10 }} />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+      <Stack.Screen 
+        name="EditClient" 
+        component={EditClientScreen}
+        options={({ navigation }) => ({
+          headerTitle: 'Edit Client',
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={24} color={COLORS.white} style={{ marginLeft: 10 }} />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+      <Stack.Screen 
+        name="ClientDetail" 
+        component={ClientDetailScreen}
+        options={({ navigation }) => ({
+          headerTitle: 'Client Details',
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={24} color={COLORS.white} style={{ marginLeft: 10 }} />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+    </Stack.Navigator>
+  );
+};
+
+export default ClientsStackNavigator;
