@@ -1,6 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
+import { Octicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 
 // Import Stack Navigators for each tab
@@ -20,18 +20,18 @@ const MainNavigator = () => {
           let iconName;
 
           if (route.name === 'HomeTab') {
-            iconName = focused ? 'home' : 'home-outline';
+            iconName = focused ? 'home-fill' : 'home';
           } else if (route.name === 'ClientsTab') {
-            iconName = focused ? 'people' : 'people-outline';
+            iconName = focused ? 'people' : 'people';
           } else if (route.name === 'RemindersTab') {
-            iconName = focused ? 'time' : 'time-outline';
+            iconName = focused ? 'clock-fill' : 'clock';
           } else if (route.name === 'SettingsTab') {
-            iconName = focused ? 'settings' : 'settings-outline';
+            iconName = focused ? 'gear' : 'gear';
           }
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Octicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: COLORS.primary,
+        tabBarActiveTintColor: COLORS.blue,
         tabBarInactiveTintColor: COLORS.gray,
         tabBarStyle: {
           paddingBottom: 5,

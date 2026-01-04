@@ -4,7 +4,7 @@ import MainNavigator from './MainNavigator';
 
 const AppNavigator = () => {
   // This will later be replaced with actual auth state management
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   return (
     <>

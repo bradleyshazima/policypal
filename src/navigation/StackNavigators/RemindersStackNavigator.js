@@ -1,6 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
+import { Octicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
 import { COLORS } from '../../constants/theme';
 
@@ -37,7 +37,7 @@ const RemindersStackNavigator = () => {
           headerTitle: 'Send Manual Reminder',
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={24} color={COLORS.white} style={{ marginLeft: 10 }} />
+              <Octicons name="arrow-back" size={24} color={COLORS.white} style={{ marginLeft: 10 }} />
             </TouchableOpacity>
           ),
         })}
