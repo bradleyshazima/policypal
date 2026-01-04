@@ -3,13 +3,12 @@ import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
 
 const AppNavigator = () => {
-  // This will later be replaced with actual auth state management
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  return (
-    <>
-      {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
-    </>
+  return isAuthenticated ? (
+    <MainNavigator />
+  ) : (
+    <AuthNavigator setIsAuthenticated={setIsAuthenticated} />
   );
 };
 

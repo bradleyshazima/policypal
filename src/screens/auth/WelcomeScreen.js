@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     display:'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 40
+    paddingHorizontal: 32
   },
   img: {
     width: 80,
