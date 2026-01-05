@@ -16,11 +16,11 @@ const SettingsStackNavigator = () => {
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: COLORS.primary,
+          backgroundColor: COLORS.lightGray,
         },
-        headerTintColor: COLORS.white,
+        headerTintColor: COLORS.black,
         headerTitleStyle: {
-          fontWeight: 'bold',
+          fontFamily: 'Bold',
           fontSize: 18,
         },
       }}

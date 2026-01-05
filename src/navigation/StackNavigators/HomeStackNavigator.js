@@ -13,13 +13,14 @@ const Stack = createNativeStackNavigator();
 const HomeStackNavigator = () => {
   return (
     <Stack.Navigator
+      headerShown={false}
       screenOptions={{
         headerStyle: {
           backgroundColor: COLORS.primary,
         },
-        headerTintColor: COLORS.white,
+        headerTintColor: COLORS.black,
         headerTitleStyle: {
-          fontWeight: 'bold',
+          fontFamily: 'Bold',
           fontSize: 18,
         },
       }}

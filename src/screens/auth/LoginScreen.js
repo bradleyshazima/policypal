@@ -1,4 +1,4 @@
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native'
+import { View, Text, Image, StyleSheet, TouchableOpacity, Easing } from 'react-native'
 import React, { useState } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES } from '../../constants/theme';
@@ -8,16 +8,18 @@ import CheckBox from '@react-native-community/checkbox';
 import { Octicons } from '@expo/vector-icons';
 import Button from '../../components/common/Button';
 import { useNavigation } from '@react-navigation/native';
-import { Alert } from 'react-native';
+import Alert from '../../components/common/Alert';
 
 
-export default function LoginScreen({setIsAuthenticated }) {
+export default function LoginScreen({ setIsAuthenticated }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const emailValid = email.includes('@') && email.includes('.');
   const [checked, setChecked] = useState(false);
   const loading = useState(false)
   const navigation = useNavigation();
+
+  const [showAlert, setShowAlert] = useState(false);
 
     const handleLogin = () => {
       const demoUser = {
@@ -28,7 +30,7 @@ export default function LoginScreen({setIsAuthenticated }) {
       if (email === demoUser.email && password === demoUser.password) {
         setIsAuthenticated(true);
       } else {
-        Alert.alert('Login Failed', 'Invalid email or password');
+        setShowAlert(true);
       }
     };
 
@@ -74,6 +76,17 @@ export default function LoginScreen({setIsAuthenticated }) {
         title="Login"
         disabled={!email || !password || !emailValid}
         onPress={handleLogin}
+      />
+
+      <Alert
+        visible={showAlert}
+        title="Login Failed"
+        message="Invalid email address or password"
+        confirmText="Try Again"
+        duration={200}
+        easing={Easing.out(Easing.cubic)}
+        slideDistance={60}
+        onConfirm={() => setShowAlert(false)}
       />
     </SafeAreaView>
   )

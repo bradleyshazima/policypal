@@ -1,5 +1,5 @@
 import { View, Text, TextInput, StyleSheet } from 'react-native';
-import { COLORS } from '../../constants/theme';
+import { COLORS, SIZES } from '../../constants/theme';
 
 export default function Input({
   label,
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
   },
   error: {
     marginTop: 4,
-    fontSize: 12,
+    fontSize: SIZES.small,
     color: COLORS.danger,
     fontFamily: 'Regular',
   },

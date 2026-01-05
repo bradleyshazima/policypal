@@ -35,12 +35,13 @@ const MainNavigator = () => {
         tabBarInactiveTintColor: COLORS.gray,
         tabBarStyle: {
           paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
+          paddingTop: 8,
+          height: 72,
+          backgroundColor:COLORS.lightGray,
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '600',
+          fontFamily: 'Medium'
         },
       })}
     >
