@@ -1,5 +1,6 @@
 export const COLORS = {
   blue: '#2772fa',
+  accent: 'rgba(206, 231, 255, 1)',
   success: '#22c55e',
   warning: '#eab308',
   danger: '#ef4444',

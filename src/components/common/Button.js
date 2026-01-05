@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.blue,
   },
   disabledPrimary: {
-    backgroundColor: '#A0CFFF',
+    backgroundColor: COLORS.accent,
   },
   primaryText: {
     color: COLORS.white,

@@ -16,11 +16,12 @@ const RemindersStackNavigator = () => {
         headerStyle: {
           backgroundColor: COLORS.primary,
         },
-        headerTintColor: COLORS.black,
+        headerTintColor: COLORS.blue,
         headerTitleStyle: {
           fontFamily: 'Bold',
           fontSize: 18,
         },
+        headerTitleAlign: 'center',
       }}
     >
       <Stack.Screen 
@@ -37,7 +38,7 @@ const RemindersStackNavigator = () => {
           headerTitle: 'Send Manual Reminder',
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Octicons name="arrow-back" size={24} color={COLORS.white} style={{ marginLeft: 10 }} />
+              <Octicons name="arrow-left" size={24} color={COLORS.white} style={{ marginHorizontal: 10 }} />
             </TouchableOpacity>
           ),
         })}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Octicons } from '@expo/vector-icons';
-import { TouchableOpacity } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import { COLORS } from '../../constants/theme';
 
 import DashboardScreen from '../../screens/main/DashboardScreen';
@@ -18,11 +18,12 @@ const HomeStackNavigator = () => {
         headerStyle: {
           backgroundColor: COLORS.primary,
         },
-        headerTintColor: COLORS.black,
+        headerTintColor: COLORS.blue,
         headerTitleStyle: {
           fontFamily: 'Bold',
           fontSize: 18,
         },
+        headerTitleAlign: 'center',
       }}
     >
       <Stack.Screen 
@@ -40,7 +41,7 @@ const HomeStackNavigator = () => {
           headerTitle: 'Reports & Analytics',
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Octicons name="arrow-back" size={24} color={COLORS.white} style={{ marginLeft: 10 }} />
+                <Octicons name="chevron-left" size={24} color={COLORS.black} />
             </TouchableOpacity>
           ),
         })}
@@ -52,7 +53,7 @@ const HomeStackNavigator = () => {
           headerTitle: 'Notifications',
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Octicons name="arrow-back" size={24} color={COLORS.white} style={{ marginLeft: 10 }} />
+                <Octicons name="chevron-left" size={24} color={COLORS.black} />
             </TouchableOpacity>
           ),
         })}
