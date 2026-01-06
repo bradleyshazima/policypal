@@ -240,15 +240,15 @@ const styles = StyleSheet.create({
     width:'100%'
   },
   hoverBtn: {
-    width: 64,
-    height: 64,
+    width: 56,
+    height: 56,
     backgroundColor:COLORS.blue,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: '100%',
     position: 'absolute',
-    bottom: 80,
-    right: 16
+    bottom: 98,
+    right: 20
   },
   shadow: {
     ...Platform.select({

@@ -39,7 +39,7 @@ const RemindersStackNavigator = () => {
           headerTitle: 'Send Manual Reminder',
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Octicons name="arrow-left" size={24} color={COLORS.white} style={{ marginHorizontal: 10 }} />
+              <Octicons name="chevron-left" size={24} color={COLORS.blue} />
             </TouchableOpacity>
           ),
         })}

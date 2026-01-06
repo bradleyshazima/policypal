@@ -51,6 +51,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Regular',
     color: COLORS.black,
+    borderColor: COLORS.gray
   },
   inputError: {
     borderColor: COLORS.danger,
