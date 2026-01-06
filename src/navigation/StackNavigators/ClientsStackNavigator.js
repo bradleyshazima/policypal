@@ -23,7 +23,8 @@ const ClientsStackNavigator = () => {
           fontFamily: 'Bold',
           fontSize: 18,
         },
-        headerTitleAlign: 'center'
+        headerTitleAlign: 'center',
+        headerShadowVisible: false,
       }}
     >
       <Stack.Screen 
@@ -40,7 +41,7 @@ const ClientsStackNavigator = () => {
           headerTitle: 'Add New Client',
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Octicons name="arrow-left" size={24} color={COLORS.black} style={{ marginHorizontal: 10 }} />
+              <Octicons name="chevron-left" size={24} color={COLORS.blue} />
             </TouchableOpacity>
           ),
         })}
@@ -52,7 +53,7 @@ const ClientsStackNavigator = () => {
           headerTitle: 'Edit Client',
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Octicons name="arrow-left" size={24} color={COLORS.black} style={{ marginHorizontal: 10 }} />
+              <Octicons name="chevron-left" size={24} color={COLORS.blue} />
             </TouchableOpacity>
           ),
         })}
@@ -64,7 +65,7 @@ const ClientsStackNavigator = () => {
           headerTitle: 'Client Details',
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Octicons name="arrow-left" size={24} color={COLORS.black} style={{ marginHorizontal: 10 }} />
+              <Octicons name="chevron-left" size={24} color={COLORS.blue} />
             </TouchableOpacity>
           ),
         })}

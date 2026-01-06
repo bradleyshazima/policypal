@@ -10,7 +10,7 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.main} showsVerticalScrollIndicator={false}>
-      <View style={[styles.card, styles.shadow]}>
+      <View style={[styles.card]}>
         <View style={{display:'flex', flexDirection:'row', gap: 8}}>
           <View style={styles.avatar}></View>
           <View style={{justifyContent: 'center'}}>
@@ -156,6 +156,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   main: {
     padding: 16,
+    backgroundColor:COLORS.primary,
   },
   card: {
     flex: 1,

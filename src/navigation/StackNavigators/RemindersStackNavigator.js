@@ -5,7 +5,7 @@ import { TouchableOpacity } from 'react-native';
 import { COLORS } from '../../constants/theme';
 
 import RemindersScreen from '../../screens/main/RemindersScreen';
-import SendReminderScreen from '../../screens/client/SendReminderScreen';
+import SendReminderScreen from '../../screens/reminder/SendReminderScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -14,7 +14,7 @@ const RemindersStackNavigator = () => {
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: COLORS.primary,
+          backgroundColor: COLORS.lightGray,
         },
         headerTintColor: COLORS.blue,
         headerTitleStyle: {
@@ -22,6 +22,7 @@ const RemindersStackNavigator = () => {
           fontSize: 18,
         },
         headerTitleAlign: 'center',
+        headerShadowVisible: false,
       }}
     >
       <Stack.Screen 

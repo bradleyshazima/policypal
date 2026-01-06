@@ -24,6 +24,7 @@ const SettingsStackNavigator = () => {
           fontSize: 18,
         },
         headerTitleAlign: 'center',
+        headerShadowVisible: false,
       }}
     >
       <Stack.Screen 

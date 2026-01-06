@@ -20,6 +20,11 @@ export default function Button({
           styles.secondary,
           isDisabled && styles.disabledSecondary,
         ];
+      case 'danger':
+        return [
+          styles.danger,
+          isDisabled && styles.disabledDanger,
+        ];
       case 'primary':
       default:
         return [
@@ -80,6 +85,12 @@ const styles = StyleSheet.create({
   },
   disabledPrimary: {
     backgroundColor: COLORS.accent,
+  },
+  danger: {
+    backgroundColor: COLORS.danger,
+  },
+  disabledDanger: {
+    backgroundColor: '#ff6c6cff',
   },
   primaryText: {
     color: COLORS.white,

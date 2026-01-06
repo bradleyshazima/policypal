@@ -16,7 +16,7 @@ const HomeStackNavigator = () => {
       headerShown={false}
       screenOptions={{
         headerStyle: {
-          backgroundColor: COLORS.primary,
+          backgroundColor: COLORS.lightGray,
         },
         headerTintColor: COLORS.blue,
         headerTitleStyle: {
@@ -24,6 +24,7 @@ const HomeStackNavigator = () => {
           fontSize: 18,
         },
         headerTitleAlign: 'center',
+        headerShadowVisible: false,
       }}
     >
       <Stack.Screen 
@@ -41,7 +42,7 @@ const HomeStackNavigator = () => {
           headerTitle: 'Reports & Analytics',
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()}>
-                <Octicons name="chevron-left" size={24} color={COLORS.black} />
+                <Octicons name="chevron-left" size={24} color={COLORS.blue} />
             </TouchableOpacity>
           ),
         })}
@@ -53,7 +54,7 @@ const HomeStackNavigator = () => {
           headerTitle: 'Notifications',
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()}>
-                <Octicons name="chevron-left" size={24} color={COLORS.black} />
+                <Octicons name="chevron-left" size={24} color={COLORS.blue} />
             </TouchableOpacity>
           ),
         })}
