@@ -41,7 +41,7 @@ const SettingsStackNavigator = () => {
           headerTitle: 'Profile',
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Octicons name="arrow-left" size={24} color={COLORS.white} style={{ marginHorizontal: 10 }} />
+              <Octicons name="chevron-left" size={24} color={COLORS.blue} />
             </TouchableOpacity>
           ),
         })}
@@ -53,7 +53,7 @@ const SettingsStackNavigator = () => {
           headerTitle: 'Subscription Plans',
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Octicons name="arrow-left" size={24} color={COLORS.white} style={{ marginHorizontal: 10 }} />
+              <Octicons name="chevron-left" size={24} color={COLORS.blue} />
             </TouchableOpacity>
           ),
         })}
@@ -65,7 +65,7 @@ const SettingsStackNavigator = () => {
           headerTitle: 'Message Templates',
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Octicons name="arrow-left" size={24} color={COLORS.white} style={{ marginHorizontal: 10 }} />
+              <Octicons name="chevron-left" size={24} color={COLORS.blue} />
             </TouchableOpacity>
           ),
         })}
