@@ -98,7 +98,7 @@ export default function DashboardScreen() {
       </View>
 
       <View style={{marginTop:12, flexDirection:'row', justifyContent:'space-between'}}>
-        <TouchableOpacity style={[{backgroundColor:COLORS.lightGray, borderRadius:12, padding:16, width:'32%',aspectRatio:1, gap:12}]}>
+        <TouchableOpacity style={[{backgroundColor:COLORS.lightGray, borderRadius:12, padding:16, width:'32%',aspectRatio:1, gap:12}]} onPress={() => navigation.navigate('AddClient')}>
           <View style={{ display:'flex' ,alignItems:'center', gap:8, justifyContent:'center'}}>
             <Text style={{fontFamily:'Medium', color:COLORS.gray, fontSize:SIZES.small}}>Add Client</Text>
             <View>
@@ -116,7 +116,7 @@ export default function DashboardScreen() {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[{backgroundColor:COLORS.lightGray, borderRadius:12, padding:16, width:'32%',aspectRatio:1, gap:12}]}>
+        <TouchableOpacity style={[{backgroundColor:COLORS.lightGray, borderRadius:12, padding:16, width:'32%',aspectRatio:1, gap:12}]} onPress={() => navigation.navigate('Reports')}>
           <View style={{ alignItems:'center', gap:8}}>
             <Text style={{fontFamily:'Medium', color:COLORS.gray, fontSize:SIZES.small}}>View Reports</Text>
             <View>
