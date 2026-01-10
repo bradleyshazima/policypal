@@ -343,9 +343,9 @@ const NotificationItem = ({ notification, onToggleRead, onDelete }) => {
           onPress={() => onToggleRead(id)}
         >
           <Octicons
-            name={read ? 'mail' : 'mail-read'}
+            name={read ? 'mail' : 'mail'}
             size={18}
-            color={COLORS.blue}
+            color={read ? COLORS.primary : COLORS.blue}
           />
         </TouchableOpacity>
         <TouchableOpacity

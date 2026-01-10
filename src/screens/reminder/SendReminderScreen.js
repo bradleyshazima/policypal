@@ -3,26 +3,41 @@ import {
   View,
   Text,
   StyleSheet,
-  Pressable,
+  TouchableOpacity,
   Switch,
   ScrollView,
   TextInput,
+  Platform,
 } from 'react-native';
-import { Octicons } from '@expo/vector-icons';
+import { Octicons, Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES } from '../../constants/theme';
 
 /* ---------------- MOCK DATA ---------------- */
 
 const CLIENTS = [
-  { id: '1', name: 'Bradley Shazima' },
-  { id: '2', name: 'Kevin Otieno' },
-  { id: '3', name: 'Sarah Wanjiru' },
+  { id: '1', name: 'Bradley Shazima', plate: 'KDC 204D' },
+  { id: '2', name: 'Kevin Otieno', plate: 'KBZ 183C' },
+  { id: '3', name: 'Sarah Wanjiru', plate: 'KCA 421A' },
+  { id: '4', name: 'John Kinyua', plate: 'KDD 892B' },
+  { id: '5', name: 'Mary Njeri', plate: 'KCB 156E' },
 ];
 
 const TEMPLATES = [
-  '15-day Insurance Reminder',
-  '7-day Insurance Reminder',
-  'Policy Expiry Today',
+  {
+    id: '1',
+    name: '15-day Insurance Reminder',
+    message: 'Hi {name}, your insurance for {car} expires in 15 days on {date}. Please renew to avoid coverage gaps.',
+  },
+  {
+    id: '2',
+    name: '7-day Insurance Reminder',
+    message: 'Hi {name}, your insurance for {car} expires in 7 days on {date}. Renew now to stay protected.',
+  },
+  {
+    id: '3',
+    name: 'Policy Expiry Today',
+    message: 'URGENT: Hi {name}, your insurance for {car} expires TODAY. Please renew immediately.',
+  },
 ];
 
 /* ---------------- SCREEN ---------------- */
@@ -34,269 +49,626 @@ export default function SendReminderScreen() {
   const [message, setMessage] = useState('');
   const [deliveryMethod, setDeliveryMethod] = useState('SMS');
   const [scheduleLater, setScheduleLater] = useState(false);
+  const [showClients, setShowClients] = useState(false);
 
   /* ---------------- LOGIC ---------------- */
 
   const toggleClient = (id) => {
-    if (selectedClients.includes(id)) {
-      setSelectedClients(selectedClients.filter(c => c !== id));
+    if (multiSelect) {
+      if (selectedClients.includes(id)) {
+        setSelectedClients(selectedClients.filter(c => c !== id));
+      } else {
+        setSelectedClients([...selectedClients, id]);
+      }
     } else {
-      setSelectedClients([...selectedClients, id]);
+      setSelectedClients([id]);
+      setShowClients(false);
     }
   };
 
   const estimatedCost = () => {
     if (deliveryMethod !== 'SMS') return 'Free';
-    return `$${(selectedClients.length * 0.05).toFixed(2)} for ${selectedClients.length} SMS`;
+    const count = selectedClients.length || 0;
+    return `$${(count * 0.05).toFixed(2)}`;
+  };
+
+  const getSelectedClientNames = () => {
+    if (selectedClients.length === 0) return 'Select client(s)';
+    if (selectedClients.length === 1) {
+      return CLIENTS.find(c => c.id === selectedClients[0])?.name;
+    }
+    return `${selectedClients.length} clients selected`;
   };
 
   /* ---------------- UI ---------------- */
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: 120 }}
-    >
-
-      {/* ---------- CLIENT SELECTION ---------- */}
-      <Section title="Select Client">
-        <View style={styles.switchRow}>
-          <Text style={styles.label}>Select multiple clients</Text>
-          <Switch
-            value={multiSelect}
-            onValueChange={setMultiSelect}
-          />
-        </View>
-
-        {CLIENTS.map(client => (
-          <Pressable
-            key={client.id}
-            onPress={() => toggleClient(client.id)}
-            style={[
-              styles.selectItem,
-              selectedClients.includes(client.id) && styles.selectedItem,
-            ]}
-          >
-            <Text style={styles.selectText}>{client.name}</Text>
-            {selectedClients.includes(client.id) && (
-              <Octicons name="check" size={16} color={COLORS.blue} />
-            )}
-          </Pressable>
-        ))}
-      </Section>
-
-      {/* ---------- TEMPLATE ---------- */}
-      <Section title="Message Template">
-        {TEMPLATES.map(template => (
-          <Pressable
-            key={template}
-            onPress={() => {
-              setSelectedTemplate(template);
-              setMessage(`Reminder: ${template}`);
-            }}
-            style={[
-              styles.selectItem,
-              selectedTemplate === template && styles.selectedItem,
-            ]}
-          >
-            <Text style={styles.selectText}>{template}</Text>
-          </Pressable>
-        ))}
-      </Section>
-
-      {/* ---------- MESSAGE ---------- */}
-      <Section title="Message Preview / Edit">
-        <TextInput
-          multiline
-          value={message}
-          onChangeText={setMessage}
-          placeholder="Type custom message..."
-          style={styles.messageBox}
-        />
-      </Section>
-
-      {/* ---------- DELIVERY METHOD ---------- */}
-      <Section title="Delivery Method">
-        {['SMS', 'WhatsApp', 'Email'].map(method => (
-          <Pressable
-            key={method}
-            onPress={() => setDeliveryMethod(method)}
-            style={styles.radioRow}
-          >
-            <View
-              style={[
-                styles.radio,
-                deliveryMethod === method && styles.radioActive,
-              ]}
+    <View style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ---------- CLIENT SELECTION ---------- */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recipients</Text>
+          
+          <View style={styles.switchContainer}>
+            <View style={styles.switchLeft}>
+              <Ionicons name="people" size={18} color={COLORS.blue} />
+              <Text style={styles.switchLabel}>Select multiple clients</Text>
+            </View>
+            <Switch
+              value={multiSelect}
+              onValueChange={setMultiSelect}
+              trackColor={{ false: COLORS.primary, true: COLORS.accent + '40' }}
+              thumbColor={multiSelect ? COLORS.blue : COLORS.gray}
             />
-            <Text style={styles.label}>{method}</Text>
-          </Pressable>
-        ))}
-      </Section>
+          </View>
 
-      {/* ---------- SCHEDULE ---------- */}
-      <Section title="Schedule">
-        <View style={styles.switchRow}>
-          <Text style={styles.label}>Schedule for later</Text>
-          <Switch
-            value={scheduleLater}
-            onValueChange={setScheduleLater}
-          />
+          <TouchableOpacity
+            style={styles.clientSelector}
+            onPress={() => setShowClients(!showClients)}
+          >
+            <Text style={[styles.clientSelectorText, selectedClients.length === 0 && { color: COLORS.gray }]}>
+              {getSelectedClientNames()}
+            </Text>
+            <Ionicons
+              name={showClients ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color={COLORS.gray}
+            />
+          </TouchableOpacity>
+
+          {showClients && (
+            <View style={styles.clientList}>
+              {CLIENTS.map((client, index) => (
+                <TouchableOpacity
+                  key={client.id}
+                  onPress={() => toggleClient(client.id)}
+                  style={[
+                    styles.clientItem,
+                    selectedClients.includes(client.id) && styles.selectedClientItem,
+                    index === CLIENTS.length - 1 && { borderBottomWidth: 0 },
+                  ]}
+                >
+                  <View style={styles.clientInfo}>
+                    <View style={[
+                      styles.checkbox,
+                      selectedClients.includes(client.id) && styles.checkboxSelected,
+                    ]}>
+                      {selectedClients.includes(client.id) && (
+                        <Ionicons name="checkmark" size={14} color={COLORS.white} />
+                      )}
+                    </View>
+                    <View>
+                      <Text style={styles.clientName}>{client.name}</Text>
+                      <Text style={styles.clientPlate}>{client.plate}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {selectedClients.length > 0 && (
+            <View style={styles.selectedCount}>
+              <Ionicons name="checkmark-circle" size={16} color={COLORS.blue} />
+              <Text style={styles.selectedCountText}>
+                {selectedClients.length} {selectedClients.length === 1 ? 'client' : 'clients'} selected
+              </Text>
+            </View>
+          )}
         </View>
 
-        {scheduleLater && (
-          <View style={styles.scheduleBox}>
-            <Text style={styles.meta}>
-              Date & time picker goes here
-            </Text>
+        {/* ---------- TEMPLATE ---------- */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Message Template</Text>
+          
+          {TEMPLATES.map((template, index) => (
+            <TouchableOpacity
+              key={template.id}
+              onPress={() => {
+                setSelectedTemplate(template.id);
+                setMessage(template.message);
+              }}
+              style={[
+                styles.templateItem,
+                selectedTemplate === template.id && styles.selectedTemplateItem,
+                index === TEMPLATES.length - 1 && { borderBottomWidth: 0 },
+              ]}
+            >
+              <View style={styles.templateContent}>
+                <View style={[
+                  styles.templateRadio,
+                  selectedTemplate === template.id && styles.templateRadioActive,
+                ]}>
+                  {selectedTemplate === template.id && (
+                    <View style={styles.templateRadioDot} />
+                  )}
+                </View>
+                <Text style={[
+                  styles.templateText,
+                  selectedTemplate === template.id && styles.selectedTemplateText,
+                ]}>
+                  {template.name}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* ---------- MESSAGE ---------- */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Message Preview</Text>
+          <Text style={styles.messageHelper}>
+            Use {'{name}'}, {'{car}'}, {'{date}'} as placeholders
+          </Text>
+          
+          <TextInput
+            multiline
+            value={message}
+            onChangeText={setMessage}
+            placeholder="Type your custom message here..."
+            placeholderTextColor={COLORS.gray}
+            style={styles.messageBox}
+          />
+          <Text style={styles.characterCount}>{message.length} characters</Text>
+        </View>
+
+        {/* ---------- DELIVERY METHOD ---------- */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Delivery Method</Text>
+          
+          <View style={styles.deliveryOptions}>
+            {[
+              { value: 'SMS', icon: 'chatbubble-ellipses', label: 'SMS' },
+              { value: 'WhatsApp', icon: 'logo-whatsapp', label: 'WhatsApp' },
+              { value: 'Email', icon: 'mail', label: 'Email' },
+            ].map((method) => (
+              <TouchableOpacity
+                key={method.value}
+                onPress={() => setDeliveryMethod(method.value)}
+                style={[
+                  styles.deliveryOption,
+                  deliveryMethod === method.value && styles.deliveryOptionActive,
+                ]}
+              >
+                <Ionicons
+                  name={method.icon}
+                  size={24}
+                  color={deliveryMethod === method.value ? COLORS.blue : COLORS.gray}
+                />
+                <Text style={[
+                  styles.deliveryLabel,
+                  deliveryMethod === method.value && styles.deliveryLabelActive,
+                ]}>
+                  {method.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
-        )}
-      </Section>
+        </View>
 
-      {/* ---------- COST ---------- */}
-      <View style={styles.costBox}>
-        <Text style={styles.costText}>
-          Estimated cost: {estimatedCost()}
-        </Text>
+        {/* ---------- SCHEDULE ---------- */}
+        <View style={styles.section}>
+          <View style={styles.switchContainer}>
+            <View style={styles.switchLeft}>
+              <Ionicons name="time" size={18} color={COLORS.blue} />
+              <Text style={styles.switchLabel}>Schedule for later</Text>
+            </View>
+            <Switch
+              value={scheduleLater}
+              onValueChange={setScheduleLater}
+              trackColor={{ false: COLORS.primary, true: COLORS.primary + '40' }}
+              thumbColor={scheduleLater ? COLORS.blue : COLORS.gray}
+            />
+          </View>
+
+          {scheduleLater && (
+            <View style={styles.scheduleBox}>
+              <Ionicons name="calendar" size={20} color={COLORS.primary} />
+              <Text style={styles.scheduleText}>
+                Date & time picker will go here
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* ---------- COST ---------- */}
+        <View style={styles.costContainer}>
+          <View style={styles.costBox}>
+            <Ionicons name="cash-outline" size={20} color={COLORS.warning} />
+            <View style={styles.costContent}>
+              <Text style={styles.costLabel}>Estimated Cost</Text>
+              <Text style={styles.costValue}>
+                {estimatedCost()}
+                {deliveryMethod === 'SMS' && selectedClients.length > 0 && (
+                  <Text style={styles.costDetail}> for {selectedClients.length} SMS</Text>
+                )}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* ---------- FIXED ACTION BUTTON ---------- */}
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={[
+            styles.sendButton,
+            (selectedClients.length === 0 || !message) && styles.sendButtonDisabled,
+          ]}
+          disabled={selectedClients.length === 0 || !message}
+        >
+          <Ionicons
+            name={scheduleLater ? "time" : "send"}
+            size={20}
+            color={COLORS.white}
+          />
+          <Text style={styles.sendText}>
+            {scheduleLater ? 'Schedule Reminder' : 'Send Now'}
+          </Text>
+        </TouchableOpacity>
       </View>
-
-      {/* ---------- ACTION BUTTON ---------- */}
-      <Pressable style={styles.sendButton}>
-        <Text style={styles.sendText}>
-          {scheduleLater ? 'Schedule Reminder' : 'Send Now'}
-        </Text>
-      </Pressable>
-    </ScrollView>
+    </View>
   );
 }
-
-/* ---------------- COMPONENTS ---------------- */
-
-const Section = ({ title, children }) => (
-  <View style={styles.section}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-    {children}
-  </View>
-);
 
 /* ---------------- STYLES ---------------- */
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.lightGray,
-    paddingHorizontal: 16,
+    backgroundColor: COLORS.background,
+  },
+
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 20,
   },
 
   section: {
     backgroundColor: COLORS.white,
     borderRadius: 12,
-    padding: 14,
+    padding: 16,
     marginBottom: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: COLORS.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
 
   sectionTitle: {
-    fontFamily: 'Medium',
-    fontSize: SIZES.small,
-    marginBottom: 10,
-    color: COLORS.blue,
+    fontFamily: 'SemiBold',
+    fontSize: SIZES.medium,
+    color: COLORS.text,
+    marginBottom: 12,
   },
 
-  label: {
-    fontFamily: 'Regular',
-    fontSize: SIZES.xsmall,
-    color: COLORS.black,
-  },
-
-  meta: {
-    fontFamily: 'Regular',
-    fontSize: SIZES.xsmall,
-    color: COLORS.gray,
-  },
-
-  switchRow: {
+  // Client Selection
+  switchContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
+    paddingVertical: 8,
   },
 
-  selectItem: {
+  switchLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  switchLabel: {
+    fontFamily: 'Medium',
+    fontSize: SIZES.small,
+    color: COLORS.text,
+  },
+
+  clientSelector: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    alignItems: 'center',
+    backgroundColor: COLORS.lightGray,
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 12,
+  },
+
+  clientSelectorText: {
+    fontFamily: 'Medium',
+    fontSize: SIZES.small,
+    color: COLORS.text,
+  },
+
+  clientList: {
+    borderRadius: 8,
+    backgroundColor: COLORS.background,
+    overflow: 'hidden',
+  },
+
+  clientItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.lightGray,
   },
 
-  selectedItem: {
-    backgroundColor: COLORS.lightGray,
+  selectedClientItem: {
+    backgroundColor: COLORS.accent,
   },
 
-  selectText: {
-    fontFamily: 'Regular',
-    fontSize: SIZES.small,
-  },
-
-  messageBox: {
-    minHeight: 100,
-    borderWidth: 1,
-    borderColor: COLORS.lightGray,
-    borderRadius: 8,
-    padding: 10,
-    fontFamily: 'Regular',
-    fontSize: SIZES.small,
-    textAlignVertical: 'top',
-  },
-
-  radioRow: {
+  clientInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    gap: 12,
   },
 
-  radio: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 1,
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
     borderColor: COLORS.gray,
-    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
-  radioActive: {
+  checkboxSelected: {
     backgroundColor: COLORS.blue,
     borderColor: COLORS.blue,
   },
 
-  scheduleBox: {
+  clientName: {
+    fontFamily: 'Medium',
+    fontSize: SIZES.small,
+    color: COLORS.text,
+  },
+
+  clientPlate: {
+    fontFamily: 'Regular',
+    fontSize: SIZES.small - 2,
+    color: COLORS.gray,
+    marginTop: 2,
+  },
+
+  selectedCount: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.lightGray,
+  },
+
+  selectedCountText: {
+    fontFamily: 'Medium',
+    fontSize: SIZES.small,
+    color: COLORS.blue,
+  },
+
+  // Templates
+  templateItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGray,
+  },
+
+  selectedTemplateItem: {
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+  },
+
+  templateContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+
+  templateRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: COLORS.gray,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  templateRadioActive: {
+    borderColor: COLORS.blue,
+  },
+
+  templateRadioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.blue,
+  },
+
+  templateText: {
+    fontFamily: 'Regular',
+    fontSize: SIZES.small,
+    color: COLORS.text,
+    flex: 1,
+  },
+
+  selectedTemplateText: {
+    fontFamily: 'SemiBold',
+    color: COLORS.blue,
+  },
+
+  // Message
+  messageHelper: {
+    fontFamily: 'Regular',
+    fontSize: SIZES.small - 2,
+    color: COLORS.gray,
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
+
+  messageBox: {
+    minHeight: 120,
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+    borderRadius: 8,
     padding: 12,
+    fontFamily: 'Regular',
+    fontSize: SIZES.small,
+    textAlignVertical: 'top',
+    backgroundColor: COLORS.background,
+  },
+
+  characterCount: {
+    fontFamily: 'Regular',
+    fontSize: SIZES.small - 2,
+    color: COLORS.gray,
+    textAlign: 'right',
+    marginTop: 6,
+  },
+
+  // Delivery Method
+  deliveryOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+
+  deliveryOption: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: COLORS.lightGray,
+    gap: 8,
+  },
+
+  deliveryOptionActive: {
+    borderColor: COLORS.accent,
+    backgroundColor: COLORS.accent + '08',
+  },
+
+  deliveryLabel: {
+    fontFamily: 'Medium',
+    fontSize: SIZES.small,
+    color: COLORS.gray,
+  },
+
+  deliveryLabelActive: {
+    color: COLORS.blue,
+  },
+
+  // Schedule
+  scheduleBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
     borderRadius: 8,
     backgroundColor: COLORS.lightGray,
+    marginTop: 12,
+  },
+
+  scheduleText: {
+    fontFamily: 'Regular',
+    fontSize: SIZES.small,
+    color: COLORS.gray,
+    fontStyle: 'italic',
+  },
+
+  // Cost
+  costContainer: {
+    marginBottom: 16,
   },
 
   costBox: {
-    marginVertical: 10,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+    backgroundColor: COLORS.warning + '10',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.warning + '20',
   },
 
-  costText: {
-    fontFamily: 'Medium',
-    fontSize: SIZES.xsmall,
+  costContent: {
+    flex: 1,
+  },
+
+  costLabel: {
+    fontFamily: 'Regular',
+    fontSize: SIZES.small - 2,
     color: COLORS.gray,
+  },
+
+  costValue: {
+    fontFamily: 'Bold',
+    fontSize: SIZES.large,
+    color: COLORS.warning,
+    marginTop: 2,
+  },
+
+  costDetail: {
+    fontFamily: 'Regular',
+    fontSize: SIZES.small,
+    color: COLORS.gray,
+  },
+
+  // Footer
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.white,
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.lightGray,
+    ...Platform.select({
+      ios: {
+        shadowColor: COLORS.black,
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
 
   sendButton: {
     backgroundColor: COLORS.blue,
-    paddingVertical: 14,
-    borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 40,
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+
+  sendButtonDisabled: {
+    backgroundColor: COLORS.gray,
+    opacity: 0.5,
   },
 
   sendText: {
-    fontFamily: 'Medium',
-    fontSize: SIZES.small,
+    fontFamily: 'SemiBold',
+    fontSize: SIZES.medium,
     color: COLORS.white,
   },
 });

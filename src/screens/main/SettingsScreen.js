@@ -56,20 +56,9 @@ export default function SettingsScreen({ navigation }) {
           onPress={() => navigation.navigate('Profile')}
         />
         <MenuItem
-          icon="briefcase"
-          label="Business Information"
-          onPress={() => console.log('Business info')}
-        />
-        <MenuItem
           icon="lock"
           label="Change Password"
           onPress={() => console.log('Change password')}
-        />
-        <MenuItem
-          icon="globe"
-          label="Language Preference"
-          value="English"
-          onPress={() => console.log('Language')}
         />
       </Section>
 
@@ -165,16 +154,7 @@ export default function SettingsScreen({ navigation }) {
           label="View Saved Templates"
           onPress={() => navigation.navigate('MessageTemplates')}
         />
-        <MenuItem
-          icon="plus"
-          label="Create New Template"
-          onPress={() => console.log('Create template')}
-        />
-        <MenuItem
-          icon="pencil"
-          label="Edit Existing Templates"
-          onPress={() => navigation.navigate('MessageTemplates')}
-        />
+
         <MenuItem
           icon="code"
           label="Available Variables"
@@ -199,12 +179,6 @@ export default function SettingsScreen({ navigation }) {
           valueColor={COLORS.gray}
           onPress={() => console.log('WhatsApp')}
         />
-        <MenuItem
-          icon="calendar"
-          label="Calendar Sync"
-          value="Google Calendar"
-          onPress={() => console.log('Calendar')}
-        />
       </Section>
 
       {/* ==================== PREFERENCES ==================== */}
@@ -215,12 +189,7 @@ export default function SettingsScreen({ navigation }) {
           value="KES (Ksh)"
           onPress={() => console.log('Currency')}
         />
-        <MenuItem
-          icon="calendar"
-          label="Date Format"
-          value="DD/MM/YYYY"
-          onPress={() => console.log('Date format')}
-        />
+
         <MenuItem
           icon="globe"
           label="Time Zone"
@@ -247,11 +216,7 @@ export default function SettingsScreen({ navigation }) {
           label="Contact Support"
           onPress={() => console.log('Contact support')}
         />
-        <MenuItem
-          icon="video"
-          label="Tutorial Videos"
-          onPress={() => console.log('Tutorials')}
-        />
+
         <MenuItem
           icon="star"
           label="Rate App"

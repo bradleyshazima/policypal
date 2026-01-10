@@ -70,10 +70,7 @@ export default function ClientDetailScreen({ navigation }) {
         {activeTab === 'Notes' && <NotesTab />}
       </ScrollView>
 
-      {/* ================= FAB ================= */}
-      <TouchableOpacity style={styles.fab}>
-        <FontAwesome name="send" size={20} color="white" />
-      </TouchableOpacity>
+
     </View>
   );
 }
@@ -296,7 +293,6 @@ const styles = StyleSheet.create({
   quickActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
     paddingHorizontal:20,
   },
   quickAction: {
