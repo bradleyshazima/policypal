@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,14 @@ import {
 } from 'react-native';
 import { Octicons } from '@expo/vector-icons';
 import { COLORS, SIZES } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
+
+// Import Modals based on your file structure
+import ReminderTimingsModal from '../../components/modals/ReminderTimingsModal';
+import DeliveryMethodModal from '../../components/modals/DeliveryMethodModal';
+import CurrencyModal from '../../components/modals/CurrencyModal';
+import TimeZoneModal from '../../components/modals/TimeZoneModal';
+import RateAppModal from '../../components/modals/RateAppModal';
 
 export default function SettingsScreen({ navigation }) {
   // State for toggles
@@ -18,7 +26,19 @@ export default function SettingsScreen({ navigation }) {
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [reminderConfirmations, setReminderConfirmations] = useState(true);
   const [clientAlerts, setClientAlerts] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+  
+  // Theme Context
+  const { isDarkMode, toggleDarkMode } = useTheme();
+
+  // Generate dynamic styles based on current theme
+  const styles = useMemo(() => getStyles(), [isDarkMode]);
+
+  // State for Modals
+  const [reminderModalVisible, setReminderModalVisible] = useState(false);
+  const [deliveryModalVisible, setDeliveryModalVisible] = useState(false);
+  const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
+  const [timeZoneModalVisible, setTimeZoneModalVisible] = useState(false);
+  const [rateAppModalVisible, setRateAppModalVisible] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -43,237 +63,274 @@ export default function SettingsScreen({ navigation }) {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* ==================== ACCOUNT SECTION ==================== */}
-      <Section title="Account">
-        <MenuItem
-          icon="person"
-          label="Profile Settings"
-          onPress={() => navigation.navigate('Profile')}
-        />
-        <MenuItem
-          icon="lock"
-          label="Change Password"
-          onPress={() => console.log('Change password')}
-        />
-      </Section>
+    <>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ==================== ACCOUNT SECTION ==================== */}
+        <Section title="Account" styles={styles}>
+          <MenuItem
+            icon="person"
+            label="Profile Settings"
+            onPress={() => navigation.navigate('Profile')}
+            styles={styles}
+          />
+          <MenuItem
+            icon="lock"
+            label="Change Password"
+            onPress={() => navigation.navigate('ChangePassword')}
+            styles={styles}
+          />
+        </Section>
 
-      {/* ==================== REMINDER SETTINGS ==================== */}
-      <Section title="Reminder Settings">
-        <MenuItem
-          icon="clock"
-          label="Default Reminder Timings"
-          value="15, 10, 5, 1 days"
-          onPress={() => console.log('Reminder timings')}
-        />
-        <MenuItem
-          icon="note"
-          label="Default Message Templates"
-          onPress={() => navigation.navigate('MessageTemplates')}
-        />
-        <MenuItem
-          icon="paper-airplane"
-          label="Default Delivery Method"
-          value="SMS"
-          onPress={() => console.log('Delivery method')}
-        />
-        <MenuItemWithSwitch
-          icon="zap"
-          label="Auto-Reminder"
-          description="Automatically send reminders"
-          value={autoReminders}
-          onValueChange={setAutoReminders}
-        />
-      </Section>
+        {/* ==================== REMINDER SETTINGS ==================== */}
+        <Section title="Reminder Settings" styles={styles}>
+          <MenuItem
+            icon="clock"
+            label="Default Reminder Timings"
+            value="15, 10, 5, 1 days"
+            onPress={() => setReminderModalVisible(true)}
+            styles={styles}
+          />
+          <MenuItem
+            icon="note"
+            label="Default Message Templates"
+            onPress={() => navigation.navigate('MessageTemplates')}
+            styles={styles}
+          />
+          <MenuItem
+            icon="paper-airplane"
+            label="Default Delivery Method"
+            value="SMS"
+            onPress={() => setDeliveryModalVisible(true)}
+            styles={styles}
+          />
+          <MenuItemWithSwitch
+            icon="zap"
+            label="Auto-Reminder"
+            description="Automatically send reminders"
+            value={autoReminders}
+            onValueChange={setAutoReminders}
+            styles={styles}
+          />
+        </Section>
 
-      {/* ==================== NOTIFICATION SETTINGS ==================== */}
-      <Section title="Notification Settings">
-        <MenuItemWithSwitch
-          icon="bell"
-          label="Push Notifications"
-          value={pushNotifications}
-          onValueChange={setPushNotifications}
-        />
-        <MenuItemWithSwitch
-          icon="mail"
-          label="Email Notifications"
-          value={emailNotifications}
-          onValueChange={setEmailNotifications}
-        />
-        <MenuItemWithSwitch
-          icon="check-circle"
-          label="Reminder Confirmations"
-          value={reminderConfirmations}
-          onValueChange={setReminderConfirmations}
-        />
-        <MenuItemWithSwitch
-          icon="pulse"
-          label="Client Activity Alerts"
-          value={clientAlerts}
-          onValueChange={setClientAlerts}
-        />
-      </Section>
+        {/* ==================== NOTIFICATION SETTINGS ==================== */}
+        <Section title="Notification Settings" styles={styles}>
+          <MenuItemWithSwitch
+            icon="bell"
+            label="Push Notifications"
+            value={pushNotifications}
+            onValueChange={setPushNotifications}
+            styles={styles}
+          />
+          <MenuItemWithSwitch
+            icon="mail"
+            label="Email Notifications"
+            value={emailNotifications}
+            onValueChange={setEmailNotifications}
+            styles={styles}
+          />
+          <MenuItemWithSwitch
+            icon="check-circle"
+            label="Reminder Confirmations"
+            value={reminderConfirmations}
+            onValueChange={setReminderConfirmations}
+            styles={styles}
+          />
+          <MenuItemWithSwitch
+            icon="pulse"
+            label="Client Activity Alerts"
+            value={clientAlerts}
+            onValueChange={setClientAlerts}
+            styles={styles}
+          />
+        </Section>
 
-      {/* ==================== SUBSCRIPTION ==================== */}
-      <Section title="Subscription">
-        <View style={styles.subscriptionCard}>
-          <View style={styles.planHeader}>
-            <View>
-              <Text style={styles.planName}>Premium Plan</Text>
-              <Text style={styles.planStatus}>Active</Text>
+        {/* ==================== SUBSCRIPTION ==================== */}
+        <Section title="Subscription" styles={styles}>
+          <View style={styles.subscriptionCard}>
+            <View style={styles.planHeader}>
+              <View>
+                <Text style={styles.planName}>Premium Plan</Text>
+                <Text style={styles.planStatus}>Active</Text>
+              </View>
+              <View style={styles.daysRemaining}>
+                <Text style={styles.daysNumber}>14</Text>
+                <Text style={styles.daysLabel}>days left</Text>
+              </View>
             </View>
-            <View style={styles.daysRemaining}>
-              <Text style={styles.daysNumber}>14</Text>
-              <Text style={styles.daysLabel}>days left</Text>
-            </View>
+            <TouchableOpacity style={styles.upgradeButton} onPress={() => navigation.navigate('Subscription')}>
+              <Text style={styles.upgradeButtonText}>Manage Subscription</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.upgradeButton} onPress={() => navigation.navigate('Subscription')}>
-            <Text style={styles.upgradeButtonText}>Manage Subscription</Text>
-          </TouchableOpacity>
-        </View>
-        <MenuItem
-          icon="credit-card"
-          label="Payment History"
-          onPress={() => console.log('Payment history')}
-        />
-        <MenuItem
-          icon="file"
-          label="Billing Information"
-          onPress={() => console.log('Billing info')}
-        />
-      </Section>
+          <MenuItem
+            icon="credit-card"
+            label="Payment History"
+            onPress={() => navigation.navigate('PaymentHistory')}
+            styles={styles}
+          />
+          <MenuItem
+            icon="file"
+            label="Billing Information"
+            onPress={() => navigation.navigate('BillingInfo')}
+            styles={styles}
+          />
+        </Section>
 
-      {/* ==================== MESSAGE TEMPLATES ==================== */}
-      <Section title="Message Templates">
-        <MenuItem
-          icon="note"
-          label="View Saved Templates"
-          onPress={() => navigation.navigate('MessageTemplates')}
-        />
+        {/* ==================== MESSAGE TEMPLATES ==================== */}
+        <Section title="Message Templates" styles={styles}>
+          <MenuItem
+            icon="note"
+            label="View Saved Templates"
+            onPress={() => navigation.navigate('MessageTemplates')}
+            styles={styles}
+          />
+        </Section>
 
-        <MenuItem
-          icon="code"
-          label="Available Variables"
-          value="View list"
-          onPress={() => console.log('Variables')}
-        />
-      </Section>
+        {/* ==================== INTEGRATIONS ==================== */}
+        <Section title="Integrations" styles={styles}>
+          <MenuItem
+            icon="plug"
+            label="Twilio SMS Service"
+            value="Connected"
+            valueColor={COLORS.success}
+            onPress={() => console.log('Twilio')}
+            styles={styles}
+          />
+          <MenuItem
+            icon="comment"
+            label="WhatsApp Business"
+            value="Not connected"
+            valueColor={COLORS.gray}
+            onPress={() => console.log('WhatsApp')}
+            styles={styles}
+          />
+        </Section>
 
-      {/* ==================== INTEGRATIONS ==================== */}
-      <Section title="Integrations">
-        <MenuItem
-          icon="plug"
-          label="Twilio SMS Service"
-          value="Connected"
-          valueColor={COLORS.success}
-          onPress={() => console.log('Twilio')}
-        />
-        <MenuItem
-          icon="comment"
-          label="WhatsApp Business"
-          value="Not connected"
-          valueColor={COLORS.gray}
-          onPress={() => console.log('WhatsApp')}
-        />
-      </Section>
+        {/* ==================== PREFERENCES ==================== */}
+        <Section title="Preferences" styles={styles}>
+          <MenuItem
+            icon="graph"
+            label="Currency Preference"
+            value="KES (Ksh)"
+            onPress={() => setCurrencyModalVisible(true)}
+            styles={styles}
+          />
 
-      {/* ==================== PREFERENCES ==================== */}
-      <Section title="Preferences">
-        <MenuItem
-          icon="graph"
-          label="Currency Preference"
-          value="KES (Ksh)"
-          onPress={() => console.log('Currency')}
-        />
+          <MenuItem
+            icon="globe"
+            label="Time Zone"
+            value="East Africa Time"
+            onPress={() => setTimeZoneModalVisible(true)}
+            styles={styles}
+          />
+        </Section>
 
-        <MenuItem
-          icon="globe"
-          label="Time Zone"
-          value="East Africa Time"
-          onPress={() => console.log('Time zone')}
-        />
-        <MenuItemWithSwitch
-          icon="moon"
-          label="Dark Mode"
-          value={darkMode}
-          onValueChange={setDarkMode}
-        />
-      </Section>
+        {/* ==================== HELP & SUPPORT ==================== */}
+        <Section title="Help & Support" styles={styles}>
+          <MenuItem
+            icon="question"
+            label="FAQs"
+            onPress={() => navigation.navigate('FAQs')}
+            styles={styles}
+          />
+          <MenuItem
+            icon="comment-discussion"
+            label="Contact Support"
+            onPress={() => navigation.navigate('ContactSupport')}
+            styles={styles}
+          />
 
-      {/* ==================== HELP & SUPPORT ==================== */}
-      <Section title="Help & Support">
-        <MenuItem
-          icon="question"
-          label="FAQs"
-          onPress={() => console.log('FAQs')}
-        />
-        <MenuItem
-          icon="comment-discussion"
-          label="Contact Support"
-          onPress={() => console.log('Contact support')}
-        />
+          <MenuItem
+            icon="star"
+            label="Rate App"
+            onPress={() => setRateAppModalVisible(true)}
+            styles={styles}
+          />
+          <MenuItem
+            icon="share"
+            label="Share App"
+            onPress={() => console.log('Share app')}
+            styles={styles}
+          />
+        </Section>
 
-        <MenuItem
-          icon="star"
-          label="Rate App"
-          onPress={() => console.log('Rate app')}
-        />
-        <MenuItem
-          icon="share"
-          label="Share App"
-          onPress={() => console.log('Share app')}
-        />
-      </Section>
+        {/* ==================== LEGAL ==================== */}
+        <Section title="Legal" styles={styles}>
+          <MenuItem
+            icon="law"
+            label="Terms of Service"
+            onPress={() => navigation.navigate('Terms')}
+            styles={styles}
+          />
+          <MenuItem
+            icon="shield"
+            label="Privacy Policy"
+            onPress={() => navigation.navigate('PrivacyPolicy')}
+            styles={styles}
+          />
+          <MenuItem
+            icon="info"
+            label="About App"
+            value="v1.0.0"
+            onPress={() => navigation.navigate('AboutApp')}
+            styles={styles}
+          />
+        </Section>
 
-      {/* ==================== LEGAL ==================== */}
-      <Section title="Legal">
-        <MenuItem
-          icon="law"
-          label="Terms of Service"
-          onPress={() => console.log('Terms')}
-        />
-        <MenuItem
-          icon="shield"
-          label="Privacy Policy"
-          onPress={() => console.log('Privacy')}
-        />
-        <MenuItem
-          icon="info"
-          label="About App"
-          value="v1.0.0"
-          onPress={() => console.log('About')}
-        />
-      </Section>
+        {/* ==================== ACCOUNT ACTIONS ==================== */}
+        <Section title="Account Actions" styles={styles}>
+          <MenuItem
+            icon="sign-out"
+            label="Logout"
+            onPress={handleLogout}
+            isDestructive
+            styles={styles}
+          />
+          <MenuItem
+            icon="trash"
+            label="Delete Account"
+            onPress={handleDeleteAccount}
+            isDestructive
+            styles={styles}
+          />
+        </Section>
 
-      {/* ==================== ACCOUNT ACTIONS ==================== */}
-      <Section title="Account Actions">
-        <MenuItem
-          icon="sign-out"
-          label="Logout"
-          onPress={handleLogout}
-          isDestructive
-        />
-        <MenuItem
-          icon="trash"
-          label="Delete Account"
-          onPress={handleDeleteAccount}
-          isDestructive
-        />
-      </Section>
+        {/* Bottom spacing */}
+        <View style={{ height: 40 }} />
+      </ScrollView>
 
-      {/* Bottom spacing */}
-      <View style={{ height: 40 }} />
-    </ScrollView>
+      {/* ==================== MODALS ==================== */}
+      <ReminderTimingsModal
+        visible={reminderModalVisible}
+        onClose={() => setReminderModalVisible(false)}
+      />
+      <DeliveryMethodModal
+        visible={deliveryModalVisible}
+        onClose={() => setDeliveryModalVisible(false)}
+      />
+      <CurrencyModal
+        visible={currencyModalVisible}
+        onClose={() => setCurrencyModalVisible(false)}
+      />
+      <TimeZoneModal
+        visible={timeZoneModalVisible}
+        onClose={() => setTimeZoneModalVisible(false)}
+      />
+      <RateAppModal
+        visible={rateAppModalVisible}
+        onClose={() => setRateAppModalVisible(false)}
+      />
+    </>
   );
 }
 
 /* ==================== REUSABLE COMPONENTS ==================== */
 
-const Section = ({ title, children }) => (
+const Section = ({ title, children, styles }) => (
   <View style={styles.section}>
     <Text style={styles.sectionTitle}>{title}</Text>
     <View style={styles.sectionContent}>
@@ -282,13 +339,14 @@ const Section = ({ title, children }) => (
   </View>
 );
 
-const MenuItem = ({ 
-  icon, 
-  label, 
-  value, 
-  valueColor = COLORS.gray, 
-  onPress, 
-  isDestructive = false 
+const MenuItem = ({
+  icon,
+  label,
+  value,
+  valueColor = COLORS.gray,
+  onPress,
+  isDestructive = false,
+  styles
 }) => (
   <TouchableOpacity
     style={styles.menuItem}
@@ -328,12 +386,13 @@ const MenuItem = ({
   </TouchableOpacity>
 );
 
-const MenuItemWithSwitch = ({ 
-  icon, 
-  label, 
-  description, 
-  value, 
-  onValueChange 
+const MenuItemWithSwitch = ({
+  icon,
+  label,
+  description,
+  value,
+  onValueChange,
+  styles
 }) => (
   <View style={styles.menuItem}>
     <View style={styles.menuItemLeft}>
@@ -358,7 +417,7 @@ const MenuItemWithSwitch = ({
 
 /* ==================== STYLES ==================== */
 
-const styles = StyleSheet.create({
+const getStyles = () => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.primary,
@@ -434,6 +493,7 @@ const styles = StyleSheet.create({
   menuItemValue: {
     fontFamily: 'Regular',
     fontSize: SIZES.xsmall,
+    color: COLORS.text, // Ensure this uses a theme color
   },
 
   /* Subscription Card */

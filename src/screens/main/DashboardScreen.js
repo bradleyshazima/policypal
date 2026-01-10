@@ -1,416 +1,514 @@
-import { View, Text, ScrollView, StyleSheet, Platform, TouchableOpacity } from 'react-native'
-import React from 'react'
-import { COLORS, SIZES } from '../../constants/theme';
-import { Octicons, FontAwesome } from '@expo/vector-icons';
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  StatusBar,
+  Platform,
+} from 'react-native';
+import { Octicons, FontAwesome5 } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { COLORS, SIZES } from '../../constants/theme';
 
 export default function DashboardScreen() {
   const navigation = useNavigation();
 
+  // Mock Data
+  const userName = "Bradley";
+  const notificationCount = 3;
+  
   return (
-    <ScrollView 
-      contentContainerStyle={styles.container} 
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Welcome Card */}
-      <View style={[styles.welcomeCard, styles.shadow]}>
-        <View style={styles.welcomeContent}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>B</Text>
-          </View>
-          <View style={styles.welcomeTextContainer}>
-            <Text style={styles.welcomeLabel}>Welcome Back!</Text>
-            <Text style={styles.welcomeName}>Bradley</Text>
-          </View>
+    <View style={styles.container}>
+      {/* Custom Header Area */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.headerDate}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </Text>
+          <Text style={styles.headerTitle}>Hello, {userName} 👋</Text>
         </View>
         <TouchableOpacity 
-          style={styles.notificationButton} 
-          onPress={() => navigation.navigate('Notifications')}
+          style={styles.profileButton}
+          onPress={() => navigation.navigate('Profile')}
         >
-          <Octicons name='bell' size={22} color={COLORS.gray} />
+           <View style={styles.avatarContainer}>
+             <Text style={styles.avatarText}>{userName.charAt(0)}</Text>
+             {/* Online Status Dot */}
+             <View style={styles.onlineDot} />
+           </View>
         </TouchableOpacity>
       </View>
 
-      {/* Stats Section */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Stats</Text>
-        <Text style={styles.sectionSubtitle}>Past 30 days</Text>
-      </View>
-
-      <View style={styles.statsContainer}>
-        {/* Total Clients Card */}
-        <View style={[styles.statCard, styles.shadow]}>
-          <View style={styles.statHeader}>
-            <View style={[styles.statIcon, { backgroundColor: COLORS.accent + '15' }]}>
-              <Octicons name='people' size={16} color={COLORS.blue} />
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ==================== TRIAL BANNER (Connects to Subscription Screen) ==================== */}
+        <TouchableOpacity 
+          style={styles.trialBanner}
+          onPress={() => navigation.navigate('Subscription')}
+          activeOpacity={0.9}
+        >
+          <View style={styles.trialContent}>
+            <View style={styles.trialIcon}>
+              <Octicons name="diamond" size={20} color={COLORS.white} />
             </View>
-            <Text style={styles.statLabel}>Total Clients</Text>
+            <View>
+              <Text style={styles.trialTitle}>Premium Trial Active</Text>
+              <Text style={styles.trialSubtitle}>5 days remaining. Upgrade now.</Text>
+            </View>
           </View>
-          <View style={styles.statContent}>
-            <Text style={styles.statValue}>28</Text>
-            <View style={styles.statChange}>
-              <Octicons name='triangle-up' size={16} color={COLORS.success} />
-              <Text style={[styles.statChangeText, { color: COLORS.success }]}>+50%</Text>
+          <Octicons name="chevron-right" size={20} color={COLORS.white} style={{ opacity: 0.8 }} />
+        </TouchableOpacity>
+
+        {/* ==================== STATS OVERVIEW ==================== */}
+        <View style={styles.statsGrid}>
+          {/* Total Clients */}
+          <View style={styles.statCard}>
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
+              <Octicons name="people" size={20} color={COLORS.blue} />
+            </View>
+            <View>
+              <Text style={styles.statValue}>28</Text>
+              <Text style={styles.statLabel}>Total Clients</Text>
+            </View>
+            <View style={styles.trendBadge}>
+              <Octicons name="arrow-up" size={12} color={COLORS.success} />
+              <Text style={styles.trendText}>12%</Text>
+            </View>
+          </View>
+
+          {/* Active Policies */}
+          <View style={styles.statCard}>
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
+              <Octicons name="shield-check" size={20} color={COLORS.success} />
+            </View>
+            <View>
+              <Text style={styles.statValue}>19</Text>
+              <Text style={styles.statLabel}>Active Policies</Text>
+            </View>
+          </View>
+
+          {/* Due Renewals */}
+          <View style={styles.statCard}>
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
+              <Octicons name="stopwatch" size={20} color={COLORS.danger} />
+            </View>
+            <View>
+              <Text style={styles.statValue}>4</Text>
+              <Text style={styles.statLabel}>Due Soon</Text>
+            </View>
+             {/* Attention Dot */}
+             <View style={styles.attentionDot} />
+          </View>
+
+          {/* Pending Reminders */}
+          <View style={styles.statCard}>
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
+              <Octicons name="bell" size={20} color={COLORS.warning} />
+            </View>
+            <View>
+              <Text style={styles.statValue}>12</Text>
+              <Text style={styles.statLabel}>Reminders</Text>
             </View>
           </View>
         </View>
 
-        {/* Active Policies Card */}
-        <View style={[styles.statCard, styles.shadow]}>
-          <View style={styles.statHeader}>
-            <View style={[styles.statIcon, { backgroundColor: COLORS.warning + '15' }]}>
-              <Octicons name='checklist' size={16} color={COLORS.warning} />
-            </View>
-            <Text style={styles.statLabel}>Active Policies</Text>
-          </View>
-          <View style={styles.statContent}>
-            <Text style={styles.statValue}>19</Text>
-            <View style={styles.statChange}>
-              <Octicons name='triangle-down' size={16} color={COLORS.danger} />
-              <Text style={[styles.statChangeText, { color: COLORS.danger }]}>-28%</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Reminders Sent Card */}
-        <View style={[styles.statCard, styles.shadow]}>
-          <View style={styles.statHeader}>
-            <View style={[styles.statIcon, { backgroundColor: COLORS.success + '15' }]}>
-              <Octicons name='megaphone' size={16} color={COLORS.success} />
-            </View>
-            <Text style={styles.statLabel}>Reminders Sent</Text>
-          </View>
-          <View style={styles.statContent}>
-            <Text style={styles.statValue}>24</Text>
-            <View style={styles.statChange}>
-              <Octicons name='triangle-up' size={16} color={COLORS.success} />
-              <Text style={[styles.statChangeText, { color: COLORS.success }]}>+50%</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Due Renewals Card */}
-        <View style={[styles.statCard, styles.shadow]}>
-          <View style={styles.statHeader}>
-            <View style={[styles.statIcon, { backgroundColor: COLORS.danger + '15' }]}>
-              <Octicons name='stopwatch' size={16} color={COLORS.danger} />
-            </View>
-            <Text style={styles.statLabel}>Due Renewals</Text>
-          </View>
-          <View style={styles.statContent}>
-            <Text style={styles.statValue}>19</Text>
-            <View style={styles.statChange}>
-              <Octicons name='triangle-up' size={16} color={COLORS.success} />
-              <Text style={[styles.statChangeText, { color: COLORS.success }]}>+50%</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-
-      {/* Quick Actions Section */}
-      <View style={styles.sectionHeader}>
+        {/* ==================== QUICK ACTIONS ==================== */}
         <Text style={styles.sectionTitle}>Quick Actions</Text>
-      </View>
-
-      <View style={styles.quickActionsContainer}>
-        <TouchableOpacity 
-          style={[styles.actionCard, styles.shadow]} 
-          onPress={() => navigation.navigate('ClientsTab', { screen: 'AddClient' })}
-        >
-          <View style={[styles.actionIconContainer, { backgroundColor: COLORS.accent + '15' }]}>
-            <Octicons name='person-add' size={24} color={COLORS.blue} />
-          </View>
-          <Text style={styles.actionLabel}>Add Client</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.actionCard, styles.shadow]}
-          onPress={() => navigation.navigate('RemindersTab', { screen: 'SendReminder' })}
-        >
-          <View style={[styles.actionIconContainer, { backgroundColor: COLORS.success + '15' }]}>
-            <FontAwesome name='send' size={22} color={COLORS.success} />
-          </View>
-          <Text style={styles.actionLabel}>Send Reminder</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.actionCard, styles.shadow]} 
-          onPress={() => navigation.navigate('Reports')}
-        >
-          <View style={[styles.actionIconContainer, { backgroundColor: COLORS.warning + '15' }]}>
-            <Octicons name='graph' size={24} color={COLORS.warning} />
-          </View>
-          <Text style={styles.actionLabel}>View Reports</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Recent Activity Section */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recent Activity</Text>
-      </View>
-
-      <View style={[styles.activityContainer, styles.shadow]}>
-        <View style={styles.activityItem}>
-          <View style={styles.activityDot} />
-          <View style={styles.activityContent}>
-            <Text style={styles.activityText}>
-              Reminder sent to <Text style={styles.activityBold}>John Kinyua</Text>
-              {' '}<Text style={styles.activityPlate}>KDC 204D</Text>
-            </Text>
-            <Text style={styles.activityTime}>12:17</Text>
-          </View>
+        <View style={styles.actionRow}>
+          <ActionButton 
+            icon="person-add" 
+            label="Add Client" 
+            color={COLORS.blue}
+            onPress={() => navigation.navigate('ClientsTab', { screen: 'AddClient' })} 
+          />
+          <ActionButton 
+            icon="paper-airplane" 
+            label="Send Msg" 
+            color={COLORS.success}
+            onPress={() => navigation.navigate('RemindersTab', { screen: 'SendReminder' })} 
+          />
+          <ActionButton 
+            icon="graph" 
+            label="Reports" 
+            color={COLORS.warning}
+            onPress={() => navigation.navigate('Reports')} 
+          />
+          <ActionButton 
+            icon="bell" 
+            label="Notifications" 
+            color={COLORS.gray}
+            onPress={() => navigation.navigate('Notifications')} 
+          />
         </View>
 
-        <View style={styles.activityItem}>
-          <View style={[styles.activityDot, { backgroundColor: COLORS.danger }]} />
-          <View style={styles.activityContent}>
-            <Text style={[styles.activityText, { color: COLORS.danger }]}>
-              Send reminder failed: <Text style={styles.activityBold}>Brandon Ogola</Text>
-            </Text>
-            <Text style={styles.activityTime}>12:15</Text>
-          </View>
+        {/* ==================== RECENT ACTIVITY ==================== */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <TouchableOpacity onPress={() => console.log("View All")}>
+            <Text style={styles.seeAllText}>See All</Text>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.activityItem}>
-          <View style={[styles.activityDot, { backgroundColor: COLORS.success }]} />
-          <View style={styles.activityContent}>
-            <Text style={styles.activityText}>
-              Added new client: <Text style={styles.activityBold}>Danford Kweli</Text>
-            </Text>
-            <Text style={styles.activityTime}>12:00</Text>
-          </View>
+        <View style={styles.activityCard}>
+          <ActivityItem 
+            icon="mail" 
+            title="Reminder Sent" 
+            subtitle="To John Kinyua (KDC 204D)" 
+            time="12:17 PM"
+            status="success"
+          />
+          <ActivityItem 
+            icon="alert" 
+            title="Delivery Failed" 
+            subtitle="To Brandon Ogola" 
+            time="10:30 AM"
+            status="failed"
+          />
+          <ActivityItem 
+            icon="check-circle" 
+            title="Policy Renewed" 
+            subtitle="Henry Shikoli confirmed" 
+            time="Yesterday"
+            status="success"
+          />
+          <ActivityItem 
+            icon="person" 
+            title="New Client Added" 
+            subtitle="Danford Kweli" 
+            time="Yesterday"
+            status="neutral"
+            isLast
+          />
         </View>
 
-        <View style={[styles.activityItem, { borderBottomWidth: 0 }]}>
-          <View style={[styles.activityDot, { backgroundColor: COLORS.primary }]} />
-          <View style={styles.activityContent}>
-            <Text style={styles.activityText}>
-              Policy renewed: <Text style={styles.activityBold}>Henry Shikoli</Text>
-            </Text>
-            <Text style={styles.activityTime}>11:45</Text>
-          </View>
-        </View>
-      </View>
+        {/* Bottom Spacing */}
+        <View style={{ height: 100 }} />
+      </ScrollView>
 
-      {/* Bottom Padding */}
-      <View style={{ height: 20 }} />
-    </ScrollView>
-  )
+      {/* Floating Action Button (Optional, for high priority action) */}
+      <TouchableOpacity 
+        style={styles.fab}
+        onPress={() => navigation.navigate('ClientsTab', { screen: 'AddClient' })}
+      >
+        <Octicons name="plus" size={24} color={COLORS.white} />
+      </TouchableOpacity>
+    </View>
+  );
 }
+
+/* ==================== SUB-COMPONENTS ==================== */
+
+const ActionButton = ({ icon, label, color, onPress }) => (
+  <TouchableOpacity style={styles.actionBtn} onPress={onPress}>
+    <View style={[styles.actionIconBox, { backgroundColor: color + '15' }]}>
+      <Octicons name={icon} size={22} color={color} />
+    </View>
+    <Text style={styles.actionLabel}>{label}</Text>
+  </TouchableOpacity>
+);
+
+const ActivityItem = ({ icon, title, subtitle, time, status, isLast }) => {
+  let iconColor = COLORS.blue;
+  let bg = COLORS.accent;
+  
+  if (status === 'success') { iconColor = COLORS.success; bg = 'rgba(16, 185, 129, 0.1)'; }
+  if (status === 'failed') { iconColor = COLORS.danger; bg = 'rgba(239, 68, 68, 0.1)'; }
+  if (status === 'neutral') { iconColor = COLORS.blue; bg = 'rgba(59, 130, 246, 0.1)'; }
+
+  return (
+    <View style={[styles.activityItem, !isLast && styles.activityBorder]}>
+      <View style={[styles.activityIcon, { backgroundColor: bg }]}>
+        <Octicons name={icon} size={16} color={iconColor} />
+      </View>
+      <View style={styles.activityContent}>
+        <Text style={styles.activityTitle}>{title}</Text>
+        <Text style={styles.activitySubtitle}>{subtitle}</Text>
+      </View>
+      <Text style={styles.activityTime}>{time}</Text>
+    </View>
+  );
+};
+
+/* ==================== STYLES ==================== */
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: COLORS.primary, // Matches Settings Screen background
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  scrollContent: {
     padding: 16,
-    backgroundColor: COLORS.background,
   },
 
-  // Welcome Card Styles
-  welcomeCard: {
-    backgroundColor: COLORS.white,
+  /* Header */
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 8,
+  },
+  headerDate: {
+    fontFamily: 'Regular',
+    fontSize: SIZES.small,
+    color: COLORS.gray,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  headerTitle: {
+    fontFamily: 'Bold',
+    fontSize: SIZES.large + 2,
+    color: COLORS.black,
+    marginTop: 4,
+  },
+  avatarContainer: {
+    width: 45,
+    height: 45,
+    borderRadius: 25,
+    backgroundColor: COLORS.blue,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    shadowColor: COLORS.blue,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  avatarText: {
+    fontFamily: 'Bold',
+    fontSize: SIZES.medium,
+    color: COLORS.white,
+  },
+  onlineDot: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.success,
+    borderWidth: 1.5,
+    borderColor: COLORS.white,
+  },
+
+  /* Trial Banner */
+  trialBanner: {
+    backgroundColor: COLORS.black, // Dark contrast like in Subscription
     borderRadius: 16,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 24,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  welcomeContent: {
+  trialContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  avatar: {
-    width: 60,
-    height: 60,
-    backgroundColor: COLORS.primary,
-    borderRadius: 30,
+  trialIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 24,
+  trialTitle: {
     fontFamily: 'Bold',
+    fontSize: SIZES.medium,
     color: COLORS.white,
   },
-  welcomeTextContainer: {
-    justifyContent: 'center',
-  },
-  welcomeLabel: {
+  trialSubtitle: {
     fontFamily: 'Regular',
-    fontSize: SIZES.small,
-    color: COLORS.gray,
-  },
-  welcomeName: {
-    fontFamily: 'Bold',
-    fontSize: SIZES.large,
-    color: COLORS.text,
-    marginTop: 2,
-  },
-  notificationButton: {
-    padding: 12,
-    backgroundColor: COLORS.primary + '10',
-    borderRadius: 12,
+    fontSize: SIZES.xsmall,
+    color: '#CCC',
   },
 
-  // Section Header Styles
+  /* Stats Grid */
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 28,
+  },
+  statCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 16,
+    width: '48%', // Approx half width
+    minHeight: 110,
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+    position: 'relative',
+  },
+  iconContainer: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  statValue: {
+    fontFamily: 'Bold',
+    fontSize: 24,
+    color: COLORS.black,
+  },
+  statLabel: {
+    fontFamily: 'Medium',
+    fontSize: SIZES.xsmall,
+    color: COLORS.gray,
+  },
+  trendBadge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  trendText: {
+    fontFamily: 'Bold',
+    fontSize: 10,
+    color: COLORS.success,
+  },
+  attentionDot: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.danger,
+  },
+
+  /* Quick Actions */
+  sectionTitle: {
+    fontFamily: 'SemiBold',
+    fontSize: SIZES.medium,
+    color: COLORS.black,
+    marginBottom: 16,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 28,
+  },
+  actionBtn: {
+    alignItems: 'center',
+    gap: 8,
+    width: '23%',
+  },
+  actionIconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 18, // Softer corners
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  actionLabel: {
+    fontFamily: 'Medium',
+    fontSize: SIZES.small - 1,
+    color: COLORS.black,
+    textAlign: 'center',
+  },
+
+  /* Recent Activity */
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
   },
-  sectionTitle: {
-    fontFamily: 'SemiBold',
-    fontSize: SIZES.medium,
-    color: COLORS.text,
-  },
-  sectionSubtitle: {
-    fontFamily: 'Regular',
-    fontSize: SIZES.small,
-    color: COLORS.gray,
-  },
-
-  // Stats Container Styles
-  statsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  statCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
-    width: '48%',
-    marginBottom: 12,
-  },
-  statHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  statIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statLabel: {
+  seeAllText: {
     fontFamily: 'Medium',
     fontSize: SIZES.small,
-    color: COLORS.gray,
-    flex: 1,
+    color: COLORS.blue,
   },
-  statContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  statValue: {
-    fontSize: 28,
-    fontFamily: 'Bold',
-    color: COLORS.text,
-  },
-  statChange: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  statChangeText: {
-    fontFamily: 'SemiBold',
-    fontSize: SIZES.small,
-  },
-
-  // Quick Actions Styles
-  quickActionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  actionCard: {
+  activityCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
-    width: '31%',
-    alignItems: 'center',
-    gap: 12,
-  },
-  actionIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionLabel: {
-    fontFamily: 'Medium',
-    fontSize: SIZES.small,
-    color: COLORS.text,
-    textAlign: 'center',
-  },
-
-  // Recent Activity Styles
-  activityContainer: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    overflow: 'hidden',
+    borderRadius: 16,
+    padding: 8, // Padding inside the card container
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   activityItem: {
     flexDirection: 'row',
-    padding: 16,
+    alignItems: 'center',
+    padding: 12,
+  },
+  activityBorder: {
     borderBottomWidth: 1,
     borderBottomColor: COLORS.lightGray,
-    gap: 12,
   },
-  activityDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.gray,
-    marginTop: 6,
+  activityIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   activityContent: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
   },
-  activityText: {
-    fontFamily: 'Regular',
+  activityTitle: {
+    fontFamily: 'SemiBold',
     fontSize: SIZES.small,
-    color: COLORS.text,
-    flex: 1,
-    lineHeight: 20,
+    color: COLORS.black,
   },
-  activityBold: {
-    fontFamily: 'SemiBold',
-    color: COLORS.text,
-  },
-  activityPlate: {
-    fontFamily: 'SemiBold',
+  activitySubtitle: {
+    fontFamily: 'Regular',
+    fontSize: SIZES.xsmall,
     color: COLORS.gray,
+    marginTop: 2,
   },
   activityTime: {
-    fontFamily: 'Regular',
-    fontSize: SIZES.small - 2,
+    fontFamily: 'Medium',
+    fontSize: 10,
     color: COLORS.gray,
-    marginLeft: 8,
   },
 
-  // Shadow Styles
-  shadow: {
-    ...Platform.select({
-      ios: {
-        shadowColor: COLORS.black,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+  /* Floating Action Button */
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.blue,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: COLORS.blue,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });

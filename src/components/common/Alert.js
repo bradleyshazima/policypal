@@ -5,10 +5,13 @@ import {
   Modal,
   TouchableOpacity,
   StyleSheet,
-  Easing,
-  Animated
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { COLORS, SIZES } from '../../constants/theme';
+import { Octicons } from '@expo/vector-icons';
+
+const { height } = Dimensions.get('window');
 
 export default function Alert({
   visible,
@@ -18,60 +21,57 @@ export default function Alert({
   onCancel,
   confirmText = 'OK',
   cancelText = 'Cancel',
-
-  // animation controls
-  duration = 300,
-  easing = Easing.out(Easing.exp),
-  slideDistance = 40,
+  type = 'info', // 'info', 'success', 'warning', 'danger'
+  showIcon = true,
 }) {
-
-  const scale = useRef(new Animated.Value(0.9)).current;
-  const translateY = useRef(new Animated.Value(slideDistance)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(height)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.timing(opacity, {
+        Animated.timing(fadeAnim, {
           toValue: 1,
-          duration,
+          duration: 200,
           useNativeDriver: true,
         }),
-        Animated.timing(scale, {
-          toValue: 1,
-          duration,
-          easing,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateY, {
+        Animated.spring(slideAnim, {
           toValue: 0,
-          duration,
-          easing,
+          damping: 20,
+          stiffness: 90,
           useNativeDriver: true,
         }),
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(opacity, {
+        Animated.timing(fadeAnim, {
           toValue: 0,
-          duration: duration * 0.8,
+          duration: 150,
           useNativeDriver: true,
         }),
-        Animated.timing(scale, {
-          toValue: 0.9,
-          duration: duration * 0.8,
-          easing,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateY, {
-          toValue: slideDistance,
-          duration: duration * 0.8,
-          easing,
+        Animated.timing(slideAnim, {
+          toValue: height,
+          duration: 200,
           useNativeDriver: true,
         }),
       ]).start();
     }
   }, [visible]);
+
+  const getIconConfig = () => {
+    switch (type) {
+      case 'success':
+        return { name: 'check-circle', color: COLORS.success };
+      case 'warning':
+        return { name: 'alert', color: COLORS.warning };
+      case 'danger':
+        return { name: 'x-circle', color: COLORS.danger };
+      default:
+        return { name: 'info', color: COLORS.blue };
+    }
+  };
+
+  const iconConfig = getIconConfig();
 
   if (!visible) return null;
 
@@ -79,82 +79,129 @@ export default function Alert({
     <Modal
       transparent
       visible={visible}
-      animationType="fade"
+      animationType="none"
       statusBarTranslucent
+      onRequestClose={onCancel || onConfirm}
     >
-      <View style={styles.overlay}>
-        <View style={styles.dialog}>
+      <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
+        <TouchableOpacity 
+          style={styles.overlayTouchable} 
+          activeOpacity={1} 
+          onPress={onCancel || onConfirm}
+        />
+        
+        <Animated.View
+          style={[
+            styles.dialog,
+            {
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          {showIcon && (
+            <View style={[styles.iconContainer, { backgroundColor: iconConfig.color + '15' }]}>
+              <Octicons name={iconConfig.name} size={32} color={iconConfig.color} />
+            </View>
+          )}
+
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{message}</Text>
+          {message && <Text style={styles.message}>{message}</Text>}
 
           <View style={styles.actions}>
             {onCancel && (
               <TouchableOpacity
-                style={styles.cancel}
+                style={[styles.button, styles.cancelButton]}
                 onPress={onCancel}
+                activeOpacity={0.7}
               >
                 <Text style={styles.cancelText}>{cancelText}</Text>
               </TouchableOpacity>
             )}
 
             <TouchableOpacity
-              style={styles.confirm}
+              style={[
+                styles.button,
+                styles.confirmButton,
+                { backgroundColor: iconConfig.color },
+              ]}
               onPress={onConfirm}
+              activeOpacity={0.7}
             >
               <Text style={styles.confirmText}>{confirmText}</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   );
 }
-
 
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  overlayTouchable: {
+    flex: 1,
   },
   dialog: {
-    width: '85%',
     backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 32,
+    alignItems: 'center',
+  },
+  iconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
   title: {
     fontSize: SIZES.large,
     fontFamily: 'Bold',
     color: COLORS.black,
+    textAlign: 'center',
+    marginBottom: 8,
   },
   message: {
-    fontSize: SIZES.medium,
+    fontSize: SIZES.small,
     fontFamily: 'Regular',
     color: COLORS.gray,
-    marginVertical: 12,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
   },
   actions: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 16,
+    gap: 12,
+    width: '100%',
   },
-  cancel: {
-    marginRight: 16,
+  button: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: COLORS.lightGray,
+  },
+  confirmButton: {
+    backgroundColor: COLORS.blue,
   },
   cancelText: {
     color: COLORS.gray,
-    fontFamily: 'Medium',
-  },
-  confirm: {
-    backgroundColor: COLORS.blue,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    fontFamily: 'SemiBold',
+    fontSize: SIZES.small,
   },
   confirmText: {
     color: COLORS.white,
-    fontFamily: 'Medium',
+    fontFamily: 'SemiBold',
+    fontSize: SIZES.small,
   },
 });
