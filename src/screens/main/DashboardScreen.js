@@ -31,7 +31,7 @@ export default function DashboardScreen() {
         </View>
         <TouchableOpacity 
           style={styles.profileButton}
-          onPress={() => navigation.navigate('Profile')}
+          onPress={() => navigation.navigate('SettingsTab', { screen: 'Profile' })}
         >
            <View style={styles.avatarContainer}>
              <Text style={styles.avatarText}>{userName.charAt(0)}</Text>
@@ -48,7 +48,7 @@ export default function DashboardScreen() {
         {/* ==================== TRIAL BANNER (Connects to Subscription Screen) ==================== */}
         <TouchableOpacity 
           style={styles.trialBanner}
-          onPress={() => navigation.navigate('Subscription')}
+          onPress={() => navigation.navigate('SettingsTab', { screen: 'Subscription' })}
           activeOpacity={0.9}
         >
           <View style={styles.trialContent}>
@@ -186,16 +186,8 @@ export default function DashboardScreen() {
         </View>
 
         {/* Bottom Spacing */}
-        <View style={{ height: 100 }} />
+        <View style={{ height: 60 }} />
       </ScrollView>
-
-      {/* Floating Action Button (Optional, for high priority action) */}
-      <TouchableOpacity 
-        style={styles.fab}
-        onPress={() => navigation.navigate('ClientsTab', { screen: 'AddClient' })}
-      >
-        <Octicons name="plus" size={24} color={COLORS.white} />
-      </TouchableOpacity>
     </View>
   );
 }
@@ -295,12 +287,12 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: COLORS.success,
     borderWidth: 1.5,
-    borderColor: COLORS.white,
+    borderColor: COLORS.primary,
   },
 
   /* Trial Banner */
   trialBanner: {
-    backgroundColor: COLORS.black, // Dark contrast like in Subscription
+    backgroundColor: COLORS.black,
     borderRadius: 16,
     padding: 16,
     flexDirection: 'row',

@@ -180,16 +180,6 @@ export default function SettingsScreen({ navigation }) {
           />
         </Section>
 
-        {/* ==================== MESSAGE TEMPLATES ==================== */}
-        <Section title="Message Templates" styles={styles}>
-          <MenuItem
-            icon="note"
-            label="View Saved Templates"
-            onPress={() => navigation.navigate('MessageTemplates')}
-            styles={styles}
-          />
-        </Section>
-
         {/* ==================== INTEGRATIONS ==================== */}
         <Section title="Integrations" styles={styles}>
           <MenuItem
