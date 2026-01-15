@@ -4,135 +4,217 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { COLORS, SIZES } from '../../constants/theme';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import { Octicons } from '@expo/vector-icons';
+import Alert from '../../components/common/Alert';
+import api from '../../services/api';
 
 export default function EditClientScreen({ navigation, route }) {
-  // In a real app, you'd get this data from route params or state management
-  const clientData = {
-    fullName: 'Bradley Shazima',
-    phone: '+254 712 345 678',
-    altPhone: '+254 798 765 432',
-    email: 'bradley@email.com',
-    address: 'Nairobi, Kenya',
-    idNumber: 'ID-12345678',
-    make: 'Honda',
-    model: 'CB150R',
-    year: '2020',
-    plate: 'KMTC 114A',
-    vin: 'VIN123456789',
-    color: 'Black',
-    insuranceType: 'Third Party',
-    company: 'Jubilee Insurance',
-    policyNumber: 'INS-23941',
-    premium: '15,000',
-    currency: 'KES',
-    startDate: '12/02/2024',
-    expiryDate: '12/02/2026',
-    paymentFrequency: 'Annual',
-    remindersEnabled: true,
-    customMessage: 'Please renew your insurance on time.',
-  };
+  const { clientId } = route.params;
+  
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({});
 
   /* ========================
      Personal Info
   ======================== */
-  const [fullName, setFullName] = useState(clientData.fullName);
-  const [phone, setPhone] = useState(clientData.phone);
-  const [altPhone, setAltPhone] = useState(clientData.altPhone);
-  const [email, setEmail] = useState(clientData.email);
-  const [address, setAddress] = useState(clientData.address);
-  const [idNumber, setIdNumber] = useState(clientData.idNumber);
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [altPhone, setAltPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
+  const [idNumber, setIdNumber] = useState('');
 
   /* ========================
      Vehicle Info
   ======================== */
-  const [make, setMake] = useState(clientData.make);
-  const [model, setModel] = useState(clientData.model);
-  const [year, setYear] = useState(clientData.year);
-  const [plate, setPlate] = useState(clientData.plate);
-  const [vin, setVin] = useState(clientData.vin);
-  const [color, setColor] = useState(clientData.color);
+  const [make, setMake] = useState('');
+  const [model, setModel] = useState('');
+  const [year, setYear] = useState('');
+  const [plate, setPlate] = useState('');
+  const [vin, setVin] = useState('');
+  const [color, setColor] = useState('');
 
   /* ========================
      Insurance Info
   ======================== */
-  const [insuranceType, setInsuranceType] = useState(clientData.insuranceType);
-  const [company, setCompany] = useState(clientData.company);
-  const [policyNumber, setPolicyNumber] = useState(clientData.policyNumber);
-  const [premium, setPremium] = useState(clientData.premium);
-  const [currency, setCurrency] = useState(clientData.currency);
-  const [startDate, setStartDate] = useState(clientData.startDate);
-  const [expiryDate, setExpiryDate] = useState(clientData.expiryDate);
-  const [paymentFrequency, setPaymentFrequency] = useState(clientData.paymentFrequency);
+  const [insuranceType, setInsuranceType] = useState('');
+  const [company, setCompany] = useState('');
+  const [policyNumber, setPolicyNumber] = useState('');
+  const [premium, setPremium] = useState('');
+  const [currency, setCurrency] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [paymentFrequency, setPaymentFrequency] = useState('');
 
   /* ========================
      Reminder Settings
   ======================== */
-  const [remindersEnabled, setRemindersEnabled] = useState(clientData.remindersEnabled);
-  const [customMessage, setCustomMessage] = useState(clientData.customMessage);
+  const [remindersEnabled, setRemindersEnabled] = useState(true);
+  const [customMessage, setCustomMessage] = useState('');
 
-  /* ========================
-     UI State
-  ======================== */
-  const [isSaving, setIsSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
+  useEffect(() => {
+    fetchClientData();
+  }, [clientId]);
 
-  const handleSave = () => {
-    setIsSaving(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsSaving(false);
+  const fetchClientData = async () => {
+    try {
+      setLoading(true);
+      const data = await api.clients.getById(clientId);
+      const client = data.client;
+
+      // Populate form with client data
+      setFullName(client.full_name || '');
+      setPhone(client.phone || '');
+      setAltPhone(client.alternative_phone || '');
+      setEmail(client.email || '');
+      setAddress(client.physical_address || '');
+      setIdNumber(client.id_number || '');
+      
+      setMake(client.car_make || '');
+      setModel(client.car_model || '');
+      setYear(client.year_of_manufacture || '');
+      setPlate(client.plate_number || '');
+      setVin(client.vin_number || '');
+      setColor(client.car_color || '');
+      
+      setInsuranceType(client.insurance_type || '');
+      setCompany(client.insurance_company || '');
+      setPolicyNumber(client.policy_number || '');
+      setPremium(client.premium_amount || '');
+      setCurrency(client.currency || 'KES');
+      setStartDate(client.start_date || '');
+      setExpiryDate(client.expiry_date || '');
+      setPaymentFrequency(client.payment_frequency || '');
+      
+      setRemindersEnabled(client.reminders_enabled || false);
+      setCustomMessage(client.custom_message || '');
+    } catch (error) {
+      console.error('Fetch client error:', error);
+      setAlertConfig({
+        type: 'danger',
+        title: 'Error',
+        message: 'Failed to load client data',
+      });
+      setShowAlert(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const markAsChanged = () => {
+    if (!hasChanges) setHasChanges(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+
+    try {
+      const updates = {
+        full_name: fullName,
+        phone: phone,
+        alternative_phone: altPhone || null,
+        email: email || null,
+        physical_address: address || null,
+        id_number: idNumber || null,
+        car_make: make,
+        car_model: model,
+        year_of_manufacture: year || null,
+        plate_number: plate || null,
+        vin_number: vin || null,
+        car_color: color || null,
+        insurance_type: insuranceType,
+        insurance_company: company || null,
+        policy_number: policyNumber || null,
+        premium_amount: premium || null,
+        currency: currency,
+        start_date: startDate || null,
+        expiry_date: expiryDate,
+        payment_frequency: paymentFrequency || null,
+        reminders_enabled: remindersEnabled,
+        custom_message: customMessage || null,
+      };
+
+      await api.clients.update(clientId, updates);
+      
       setHasChanges(false);
-      Alert.alert('Success', 'Client information updated successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() }
-      ]);
-    }, 1500);
+      setAlertConfig({
+        type: 'success',
+        title: 'Success',
+        message: 'Client updated successfully!',
+      });
+      setShowAlert(true);
+
+      // Navigate back after short delay
+      setTimeout(() => {
+        navigation.goBack();
+      }, 1500);
+    } catch (error) {
+      console.error('Update client error:', error);
+      setAlertConfig({
+        type: 'danger',
+        title: 'Error',
+        message: error.message || 'Failed to update client',
+      });
+      setShowAlert(true);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
     if (hasChanges) {
-      Alert.alert(
-        'Discard Changes?',
-        'You have unsaved changes. Are you sure you want to discard them?',
-        [
-          { text: 'Keep Editing', style: 'cancel' },
-          { text: 'Discard', style: 'destructive', onPress: () => navigation.goBack() },
-        ]
-      );
+      setAlertConfig({
+        type: 'warning',
+        title: 'Discard Changes?',
+        message: 'You have unsaved changes. Are you sure you want to discard them?',
+      });
+      setShowAlert(true);
     } else {
       navigation.goBack();
     }
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      'Delete Client',
-      'Are you sure you want to delete this client? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Success', 'Client deleted successfully');
-            navigation.navigate('ClientsList');
-          },
-        },
-      ]
-    );
+    setAlertConfig({
+      type: 'danger',
+      title: 'Delete Client',
+      message: 'Are you sure you want to delete this client? This action cannot be undone.',
+    });
+    setShowAlert(true);
   };
 
-  // Track changes
-  const markAsChanged = () => {
-    if (!hasChanges) setHasChanges(true);
+  const confirmDelete = async () => {
+    try {
+      await api.clients.delete(clientId);
+      navigation.navigate('ClientsList');
+    } catch (error) {
+      console.error('Delete client error:', error);
+      setAlertConfig({
+        type: 'danger',
+        title: 'Error',
+        message: error.message || 'Failed to delete client',
+      });
+      setShowAlert(true);
+    }
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.blue} />
+        <Text style={styles.loadingText}>Loading client data...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -160,8 +242,6 @@ export default function EditClientScreen({ navigation, route }) {
            Personal Information
         ======================== */}
         <Section title="Personal Information">
-          <UploadBox label="Update profile photo" />
-
           <Input
             label="Full name *"
             value={fullName}
@@ -169,6 +249,7 @@ export default function EditClientScreen({ navigation, route }) {
               setFullName(text);
               markAsChanged();
             }}
+            placeholder="Enter full name"
           />
           <Input
             label="Phone number *"
@@ -178,6 +259,7 @@ export default function EditClientScreen({ navigation, route }) {
               markAsChanged();
             }}
             keyboardType="phone-pad"
+            placeholder="+254..."
           />
           <Input
             label="Alternative phone number"
@@ -187,6 +269,7 @@ export default function EditClientScreen({ navigation, route }) {
               markAsChanged();
             }}
             keyboardType="phone-pad"
+            placeholder="+254..."
           />
           <Input
             label="Email address"
@@ -195,7 +278,9 @@ export default function EditClientScreen({ navigation, route }) {
               setEmail(text);
               markAsChanged();
             }}
+            autoCapitalize="none"
             keyboardType="email-address"
+            placeholder="email@example.com"
           />
           <Input
             label="Physical address"
@@ -204,6 +289,7 @@ export default function EditClientScreen({ navigation, route }) {
               setAddress(text);
               markAsChanged();
             }}
+            placeholder="Enter address"
           />
           <Input
             label="ID / License number"
@@ -212,6 +298,7 @@ export default function EditClientScreen({ navigation, route }) {
               setIdNumber(text);
               markAsChanged();
             }}
+            placeholder="Enter ID or license"
           />
         </Section>
 
@@ -226,6 +313,7 @@ export default function EditClientScreen({ navigation, route }) {
               setMake(text);
               markAsChanged();
             }}
+            placeholder="e.g., Toyota"
           />
           <Input
             label="Car model *"
@@ -234,6 +322,7 @@ export default function EditClientScreen({ navigation, route }) {
               setModel(text);
               markAsChanged();
             }}
+            placeholder="e.g., Corolla"
           />
           <Input
             label="Year of manufacture"
@@ -243,6 +332,7 @@ export default function EditClientScreen({ navigation, route }) {
               markAsChanged();
             }}
             keyboardType="number-pad"
+            placeholder="YYYY"
           />
           <Input
             label="Registration / Plate number"
@@ -251,6 +341,7 @@ export default function EditClientScreen({ navigation, route }) {
               setPlate(text);
               markAsChanged();
             }}
+            placeholder="e.g., KAA 123A"
           />
           <Input
             label="VIN number"
@@ -259,6 +350,7 @@ export default function EditClientScreen({ navigation, route }) {
               setVin(text);
               markAsChanged();
             }}
+            placeholder="17-character VIN"
           />
           <Input
             label="Car color"
@@ -267,6 +359,7 @@ export default function EditClientScreen({ navigation, route }) {
               setColor(text);
               markAsChanged();
             }}
+            placeholder="e.g., White"
           />
         </Section>
 
@@ -281,6 +374,7 @@ export default function EditClientScreen({ navigation, route }) {
               setInsuranceType(text);
               markAsChanged();
             }}
+            placeholder="e.g., Comprehensive"
           />
           <Input
             label="Insurance company"
@@ -289,6 +383,7 @@ export default function EditClientScreen({ navigation, route }) {
               setCompany(text);
               markAsChanged();
             }}
+            placeholder="e.g., Jubilee Insurance"
           />
           <Input
             label="Policy number"
@@ -297,15 +392,17 @@ export default function EditClientScreen({ navigation, route }) {
               setPolicyNumber(text);
               markAsChanged();
             }}
+            placeholder="Enter policy number"
           />
           <Input
-            label="Coverage amount / Premium *"
+            label="Premium amount"
             value={premium}
             onChangeText={(text) => {
               setPremium(text);
               markAsChanged();
             }}
-            keyboardType="number-pad"
+            keyboardType="numeric"
+            placeholder="Enter amount"
           />
           <Input
             label="Currency"
@@ -314,15 +411,16 @@ export default function EditClientScreen({ navigation, route }) {
               setCurrency(text);
               markAsChanged();
             }}
+            placeholder="KES"
           />
           <Input
-            label="Start date *"
+            label="Start date"
             value={startDate}
             onChangeText={(text) => {
               setStartDate(text);
               markAsChanged();
             }}
-            placeholder="DD/MM/YYYY"
+            placeholder="YYYY-MM-DD"
           />
           <Input
             label="Renewal / Expiry date *"
@@ -331,7 +429,7 @@ export default function EditClientScreen({ navigation, route }) {
               setExpiryDate(text);
               markAsChanged();
             }}
-            placeholder="DD/MM/YYYY"
+            placeholder="YYYY-MM-DD"
           />
           <Input
             label="Payment frequency"
@@ -340,33 +438,8 @@ export default function EditClientScreen({ navigation, route }) {
               setPaymentFrequency(text);
               markAsChanged();
             }}
+            placeholder="e.g., Annual, Monthly"
           />
-        </Section>
-
-        {/* ========================
-           Documents
-        ======================== */}
-        <Section title="Documents">
-          <DocumentItem
-            label="Insurance Certificate"
-            uploaded={true}
-            fileName="certificate_2024.pdf"
-          />
-          <UploadBox label="Update insurance certificate" />
-          
-          <DocumentItem
-            label="Car Photos"
-            uploaded={true}
-            fileName="3 photos"
-          />
-          <UploadBox label="Add more car photos" />
-          
-          <DocumentItem
-            label="ID Copy"
-            uploaded={true}
-            fileName="id_copy.pdf"
-          />
-          <UploadBox label="Update ID copy" />
         </Section>
 
         {/* ========================
@@ -408,24 +481,43 @@ export default function EditClientScreen({ navigation, route }) {
           <Button
             title="Save Changes"
             onPress={handleSave}
-            loading={isSaving}
-            disabled={!hasChanges}
+            loading={saving}
+            disabled={!hasChanges || saving}
           />
           <Button
             title="Cancel"
             variant="secondary"
             onPress={handleCancel}
+            disabled={saving}
           />
           <Button
             title="Delete Client"
             variant="danger"
             onPress={handleDelete}
+            disabled={saving}
           />
         </View>
 
-        {/* Bottom spacing */}
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <Alert
+        visible={showAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        confirmText={alertConfig.type === 'danger' ? 'Delete' : alertConfig.type === 'warning' ? 'Discard' : 'OK'}
+        cancelText={alertConfig.type === 'danger' || alertConfig.type === 'warning' ? 'Cancel' : null}
+        onConfirm={() => {
+          if (alertConfig.type === 'danger' && alertConfig.title === 'Delete Client') {
+            confirmDelete();
+          } else if (alertConfig.type === 'warning') {
+            navigation.goBack();
+          }
+          setShowAlert(false);
+        }}
+        onCancel={() => setShowAlert(false)}
+      />
     </View>
   );
 }
@@ -441,38 +533,6 @@ const Section = ({ title, children }) => (
 );
 
 /* ========================
-   Upload Placeholder
-======================== */
-const UploadBox = ({ label }) => (
-  <TouchableOpacity style={styles.uploadBox}>
-    <Octicons name="upload" size={18} color={COLORS.blue} />
-    <Text style={styles.uploadText}>{label}</Text>
-  </TouchableOpacity>
-);
-
-/* ========================
-   Document Item
-======================== */
-const DocumentItem = ({ label, uploaded, fileName }) => (
-  <View style={styles.documentItem}>
-    <View style={styles.documentInfo}>
-      <Octicons
-        name={uploaded ? 'check-circle-fill' : 'circle'}
-        size={20}
-        color={uploaded ? COLORS.success : COLORS.gray}
-      />
-      <View style={styles.documentText}>
-        <Text style={styles.documentLabel}>{label}</Text>
-        {uploaded && <Text style={styles.documentFileName}>{fileName}</Text>}
-      </View>
-    </View>
-    <TouchableOpacity>
-      <Octicons name="eye" size={18} color={COLORS.blue} />
-    </TouchableOpacity>
-  </View>
-);
-
-/* ========================
    Styles
 ======================== */
 const styles = StyleSheet.create({
@@ -480,8 +540,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.primary,
   },
-
-  /* Header Card */
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontFamily: 'Regular',
+    fontSize: SIZES.small,
+    color: COLORS.gray,
+  },
   headerCard: {
     backgroundColor: COLORS.lightGray,
     flexDirection: 'row',
@@ -524,14 +594,10 @@ const styles = StyleSheet.create({
     fontSize: SIZES.xsmall,
     color: COLORS.white,
   },
-
-  /* Scroll Content */
   scrollContent: {
     padding: 8,
     paddingBottom: 40,
   },
-
-  /* Section */
   section: {
     backgroundColor: COLORS.lightGray,
     borderRadius: 12,
@@ -545,60 +611,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: COLORS.blue,
   },
-
-  /* Upload Box */
-  uploadBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.gray,
-    borderStyle: 'dashed',
-    marginBottom: 12,
-    backgroundColor: COLORS.white,
-  },
-  uploadText: {
-    fontFamily: 'Regular',
-    fontSize: SIZES.small,
-    color: COLORS.blue,
-  },
-
-  /* Document Item */
-  documentItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    backgroundColor: COLORS.white,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  documentInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  documentText: {
-    flex: 1,
-  },
-  documentLabel: {
-    fontFamily: 'Medium',
-    fontSize: SIZES.small,
-    color: COLORS.black,
-    marginBottom: 2,
-  },
-  documentFileName: {
-    fontFamily: 'Regular',
-    fontSize: SIZES.xsmall,
-    color: COLORS.gray,
-  },
-
-  /* Toggle Row */
   toggleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -614,8 +626,6 @@ const styles = StyleSheet.create({
     fontSize: SIZES.small,
     color: COLORS.black,
   },
-
-  /* Actions */
   actionsContainer: {
     marginTop: 8,
     gap: 8,

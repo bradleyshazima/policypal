@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,50 +8,58 @@ import {
   ScrollView,
   TextInput,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Octicons, Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES } from '../../constants/theme';
+import Alert from '../../components/common/Alert';
+import api from '../../services/api';
 
-/* ---------------- MOCK DATA ---------------- */
-
-const CLIENTS = [
-  { id: '1', name: 'Bradley Shazima', plate: 'KDC 204D' },
-  { id: '2', name: 'Kevin Otieno', plate: 'KBZ 183C' },
-  { id: '3', name: 'Sarah Wanjiru', plate: 'KCA 421A' },
-  { id: '4', name: 'John Kinyua', plate: 'KDD 892B' },
-  { id: '5', name: 'Mary Njeri', plate: 'KCB 156E' },
-];
-
-const TEMPLATES = [
-  {
-    id: '1',
-    name: '15-day Insurance Reminder',
-    message: 'Hi {name}, your insurance for {car} expires in 15 days on {date}. Please renew to avoid coverage gaps.',
-  },
-  {
-    id: '2',
-    name: '7-day Insurance Reminder',
-    message: 'Hi {name}, your insurance for {car} expires in 7 days on {date}. Renew now to stay protected.',
-  },
-  {
-    id: '3',
-    name: 'Policy Expiry Today',
-    message: 'URGENT: Hi {name}, your insurance for {car} expires TODAY. Please renew immediately.',
-  },
-];
-
-/* ---------------- SCREEN ---------------- */
-
-export default function SendReminderScreen() {
-  const [selectedClients, setSelectedClients] = useState([]);
+export default function SendReminderScreen({ route }) {
+  const preselectedClientId = route?.params?.preselectedClientId;
+  
+  const [clients, setClients] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  
+  const [selectedClients, setSelectedClients] = useState(preselectedClientId ? [preselectedClientId] : []);
   const [multiSelect, setMultiSelect] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [message, setMessage] = useState('');
-  const [deliveryMethod, setDeliveryMethod] = useState('SMS');
+  const [deliveryMethod, setDeliveryMethod] = useState('sms');
   const [scheduleLater, setScheduleLater] = useState(false);
   const [showClients, setShowClients] = useState(false);
+  
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({});
 
-  /* ---------------- LOGIC ---------------- */
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [clientsData, templatesData] = await Promise.all([
+        api.clients.getAll({ status: 'active' }),
+        api.templates.getAll(),
+      ]);
+
+      setClients(clientsData.clients || []);
+      setTemplates(templatesData.templates || []);
+    } catch (error) {
+      console.error('Fetch data error:', error);
+      setAlertConfig({
+        type: 'danger',
+        title: 'Error',
+        message: 'Failed to load data. Please try again.',
+      });
+      setShowAlert(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleClient = (id) => {
     if (multiSelect) {
@@ -67,7 +75,7 @@ export default function SendReminderScreen() {
   };
 
   const estimatedCost = () => {
-    if (deliveryMethod !== 'SMS') return 'Free';
+    if (deliveryMethod !== 'sms') return 'Free';
     const count = selectedClients.length || 0;
     return `$${(count * 0.05).toFixed(2)}`;
   };
@@ -75,12 +83,87 @@ export default function SendReminderScreen() {
   const getSelectedClientNames = () => {
     if (selectedClients.length === 0) return 'Select client(s)';
     if (selectedClients.length === 1) {
-      return CLIENTS.find(c => c.id === selectedClients[0])?.name;
+      return clients.find(c => c.id === selectedClients[0])?.full_name || 'Unknown';
     }
     return `${selectedClients.length} clients selected`;
   };
 
-  /* ---------------- UI ---------------- */
+  const handleTemplateSelect = (template) => {
+    setSelectedTemplate(template.id);
+    setMessage(template.message);
+  };
+
+  const handleSubmit = async () => {
+    if (selectedClients.length === 0) {
+      setAlertConfig({
+        type: 'warning',
+        title: 'No Clients Selected',
+        message: 'Please select at least one client.',
+      });
+      setShowAlert(true);
+      return;
+    }
+
+    if (!message.trim()) {
+      setAlertConfig({
+        type: 'warning',
+        title: 'No Message',
+        message: 'Please enter a message.',
+      });
+      setShowAlert(true);
+      return;
+    }
+
+    setSending(true);
+
+    try {
+      const reminderData = {
+        clientIds: selectedClients,
+        message: message,
+        deliveryMethod: deliveryMethod,
+      };
+
+      if (scheduleLater) {
+        reminderData.scheduleDate = new Date().toISOString(); // You can add date picker here
+      }
+
+      const result = await api.reminders.sendManual(reminderData);
+
+      setAlertConfig({
+        type: 'success',
+        title: 'Success',
+        message: `${result.successful || 0} reminder(s) sent successfully!`,
+      });
+      setShowAlert(true);
+
+      // Reset form
+      setTimeout(() => {
+        setSelectedClients([]);
+        setMessage('');
+        setSelectedTemplate(null);
+        setScheduleLater(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Send reminder error:', error);
+      setAlertConfig({
+        type: 'danger',
+        title: 'Error',
+        message: error.message || 'Failed to send reminders. Please try again.',
+      });
+      setShowAlert(true);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.blue} />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -121,32 +204,38 @@ export default function SendReminderScreen() {
 
           {showClients && (
             <View style={styles.clientList}>
-              {CLIENTS.map((client, index) => (
-                <TouchableOpacity
-                  key={client.id}
-                  onPress={() => toggleClient(client.id)}
-                  style={[
-                    styles.clientItem,
-                    selectedClients.includes(client.id) && styles.selectedClientItem,
-                    index === CLIENTS.length - 1 && { borderBottomWidth: 0 },
-                  ]}
-                >
-                  <View style={styles.clientInfo}>
-                    <View style={[
-                      styles.checkbox,
-                      selectedClients.includes(client.id) && styles.checkboxSelected,
-                    ]}>
-                      {selectedClients.includes(client.id) && (
-                        <Ionicons name="checkmark" size={14} color={COLORS.white} />
-                      )}
+              {clients.length === 0 ? (
+                <Text style={styles.emptyText}>No active clients available</Text>
+              ) : (
+                clients.map((client, index) => (
+                  <TouchableOpacity
+                    key={client.id}
+                    onPress={() => toggleClient(client.id)}
+                    style={[
+                      styles.clientItem,
+                      selectedClients.includes(client.id) && styles.selectedClientItem,
+                      index === clients.length - 1 && { borderBottomWidth: 0 },
+                    ]}
+                  >
+                    <View style={styles.clientInfo}>
+                      <View style={[
+                        styles.checkbox,
+                        selectedClients.includes(client.id) && styles.checkboxSelected,
+                      ]}>
+                        {selectedClients.includes(client.id) && (
+                          <Ionicons name="checkmark" size={14} color={COLORS.white} />
+                        )}
+                      </View>
+                      <View>
+                        <Text style={styles.clientName}>{client.full_name}</Text>
+                        <Text style={styles.clientPlate}>
+                          {client.plate_number || `${client.car_make} ${client.car_model}`}
+                        </Text>
+                      </View>
                     </View>
-                    <View>
-                      <Text style={styles.clientName}>{client.name}</Text>
-                      <Text style={styles.clientPlate}>{client.plate}</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
+                  </TouchableOpacity>
+                ))
+              )}
             </View>
           )}
 
@@ -164,44 +253,45 @@ export default function SendReminderScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Message Template</Text>
           
-          {TEMPLATES.map((template, index) => (
-            <TouchableOpacity
-              key={template.id}
-              onPress={() => {
-                setSelectedTemplate(template.id);
-                setMessage(template.message);
-              }}
-              style={[
-                styles.templateItem,
-                selectedTemplate === template.id && styles.selectedTemplateItem,
-                index === TEMPLATES.length - 1 && { borderBottomWidth: 0 },
-              ]}
-            >
-              <View style={styles.templateContent}>
-                <View style={[
-                  styles.templateRadio,
-                  selectedTemplate === template.id && styles.templateRadioActive,
-                ]}>
-                  {selectedTemplate === template.id && (
-                    <View style={styles.templateRadioDot} />
-                  )}
+          {templates.length === 0 ? (
+            <Text style={styles.emptyText}>No templates available</Text>
+          ) : (
+            templates.map((template, index) => (
+              <TouchableOpacity
+                key={template.id}
+                onPress={() => handleTemplateSelect(template)}
+                style={[
+                  styles.templateItem,
+                  selectedTemplate === template.id && styles.selectedTemplateItem,
+                  index === templates.length - 1 && { borderBottomWidth: 0 },
+                ]}
+              >
+                <View style={styles.templateContent}>
+                  <View style={[
+                    styles.templateRadio,
+                    selectedTemplate === template.id && styles.templateRadioActive,
+                  ]}>
+                    {selectedTemplate === template.id && (
+                      <View style={styles.templateRadioDot} />
+                    )}
+                  </View>
+                  <Text style={[
+                    styles.templateText,
+                    selectedTemplate === template.id && styles.selectedTemplateText,
+                  ]}>
+                    {template.name}
+                  </Text>
                 </View>
-                <Text style={[
-                  styles.templateText,
-                  selectedTemplate === template.id && styles.selectedTemplateText,
-                ]}>
-                  {template.name}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
         {/* ---------- MESSAGE ---------- */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Message Preview</Text>
           <Text style={styles.messageHelper}>
-            Use {'{name}'}, {'{car}'}, {'{date}'} as placeholders
+            Use {'{client_name}'}, {'{car_model}'}, {'{expiry_date}'} as placeholders
           </Text>
           
           <TextInput
@@ -221,9 +311,9 @@ export default function SendReminderScreen() {
           
           <View style={styles.deliveryOptions}>
             {[
-              { value: 'SMS', icon: 'chatbubble-ellipses', label: 'SMS' },
-              { value: 'WhatsApp', icon: 'logo-whatsapp', label: 'WhatsApp' },
-              { value: 'Email', icon: 'mail', label: 'Email' },
+              { value: 'sms', icon: 'chatbubble-ellipses', label: 'SMS' },
+              { value: 'whatsapp', icon: 'logo-whatsapp', label: 'WhatsApp' },
+              { value: 'email', icon: 'mail', label: 'Email' },
             ].map((method) => (
               <TouchableOpacity
                 key={method.value}
@@ -266,7 +356,7 @@ export default function SendReminderScreen() {
 
           {scheduleLater && (
             <View style={styles.scheduleBox}>
-              <Ionicons name="calendar" size={20} color={COLORS.primary} />
+              <Ionicons name="calendar" size={20} color={COLORS.blue} />
               <Text style={styles.scheduleText}>
                 Date & time picker will go here
               </Text>
@@ -282,7 +372,7 @@ export default function SendReminderScreen() {
               <Text style={styles.costLabel}>Estimated Cost</Text>
               <Text style={styles.costValue}>
                 {estimatedCost()}
-                {deliveryMethod === 'SMS' && selectedClients.length > 0 && (
+                {deliveryMethod === 'sms' && selectedClients.length > 0 && (
                   <Text style={styles.costDetail}> for {selectedClients.length} SMS</Text>
                 )}
               </Text>
@@ -298,37 +388,61 @@ export default function SendReminderScreen() {
         <TouchableOpacity
           style={[
             styles.sendButton,
-            (selectedClients.length === 0 || !message) && styles.sendButtonDisabled,
+            (selectedClients.length === 0 || !message || sending) && styles.sendButtonDisabled,
           ]}
-          disabled={selectedClients.length === 0 || !message}
+          disabled={selectedClients.length === 0 || !message || sending}
+          onPress={handleSubmit}
         >
-          <Ionicons
-            name={scheduleLater ? "time" : "send"}
-            size={20}
-            color={COLORS.white}
-          />
-          <Text style={styles.sendText}>
-            {scheduleLater ? 'Schedule Reminder' : 'Send Now'}
-          </Text>
+          {sending ? (
+            <ActivityIndicator size="small" color={COLORS.white} />
+          ) : (
+            <>
+              <Ionicons
+                name={scheduleLater ? "time" : "send"}
+                size={20}
+                color={COLORS.white}
+              />
+              <Text style={styles.sendText}>
+                {scheduleLater ? 'Schedule Reminder' : 'Send Now'}
+              </Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
+
+      <Alert
+        visible={showAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        confirmText="OK"
+        onConfirm={() => setShowAlert(false)}
+      />
     </View>
   );
 }
-
-/* ---------------- STYLES ---------------- */
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
-
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontFamily: 'Regular',
+    fontSize: SIZES.small,
+    color: COLORS.gray,
+  },
   scrollContent: {
     padding: 16,
     paddingBottom: 20,
   },
-
   section: {
     backgroundColor: COLORS.white,
     borderRadius: 12,
@@ -346,15 +460,12 @@ const styles = StyleSheet.create({
       },
     }),
   },
-
   sectionTitle: {
     fontFamily: 'SemiBold',
     fontSize: SIZES.medium,
     color: COLORS.text,
     marginBottom: 12,
   },
-
-  // Client Selection
   switchContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -362,19 +473,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingVertical: 8,
   },
-
   switchLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-
   switchLabel: {
     fontFamily: 'Medium',
     fontSize: SIZES.small,
     color: COLORS.text,
   },
-
   clientSelector: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -384,19 +492,16 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 12,
   },
-
   clientSelectorText: {
     fontFamily: 'Medium',
     fontSize: SIZES.small,
     color: COLORS.text,
   },
-
   clientList: {
     borderRadius: 8,
     backgroundColor: COLORS.background,
     overflow: 'hidden',
   },
-
   clientItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -405,17 +510,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.lightGray,
   },
-
   selectedClientItem: {
     backgroundColor: COLORS.accent,
   },
-
   clientInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-
   checkbox: {
     width: 22,
     height: 22,
@@ -425,25 +527,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   checkboxSelected: {
     backgroundColor: COLORS.blue,
     borderColor: COLORS.blue,
   },
-
   clientName: {
     fontFamily: 'Medium',
     fontSize: SIZES.small,
     color: COLORS.text,
   },
-
   clientPlate: {
     fontFamily: 'Regular',
     fontSize: SIZES.small - 2,
     color: COLORS.gray,
     marginTop: 2,
   },
-
   selectedCount: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -453,31 +551,25 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.lightGray,
   },
-
   selectedCountText: {
     fontFamily: 'Medium',
     fontSize: SIZES.small,
     color: COLORS.blue,
   },
-
-  // Templates
   templateItem: {
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.lightGray,
   },
-
   selectedTemplateItem: {
     marginHorizontal: -16,
     paddingHorizontal: 16,
   },
-
   templateContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-
   templateRadio: {
     width: 20,
     height: 20,
@@ -487,31 +579,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   templateRadioActive: {
     borderColor: COLORS.blue,
   },
-
   templateRadioDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
     backgroundColor: COLORS.blue,
   },
-
   templateText: {
     fontFamily: 'Regular',
     fontSize: SIZES.small,
     color: COLORS.text,
     flex: 1,
   },
-
   selectedTemplateText: {
     fontFamily: 'SemiBold',
     color: COLORS.blue,
   },
-
-  // Message
   messageHelper: {
     fontFamily: 'Regular',
     fontSize: SIZES.small - 2,
@@ -519,7 +605,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontStyle: 'italic',
   },
-
   messageBox: {
     minHeight: 120,
     borderWidth: 1,
@@ -531,7 +616,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     backgroundColor: COLORS.background,
   },
-
   characterCount: {
     fontFamily: 'Regular',
     fontSize: SIZES.small - 2,
@@ -539,13 +623,10 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginTop: 6,
   },
-
-  // Delivery Method
   deliveryOptions: {
     flexDirection: 'row',
     gap: 12,
   },
-
   deliveryOption: {
     flex: 1,
     alignItems: 'center',
@@ -555,23 +636,18 @@ const styles = StyleSheet.create({
     borderColor: COLORS.lightGray,
     gap: 8,
   },
-
   deliveryOptionActive: {
     borderColor: COLORS.accent,
     backgroundColor: COLORS.accent + '08',
   },
-
   deliveryLabel: {
     fontFamily: 'Medium',
     fontSize: SIZES.small,
     color: COLORS.gray,
   },
-
   deliveryLabelActive: {
     color: COLORS.blue,
   },
-
-  // Schedule
   scheduleBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -581,19 +657,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.lightGray,
     marginTop: 12,
   },
-
   scheduleText: {
     fontFamily: 'Regular',
     fontSize: SIZES.small,
     color: COLORS.gray,
     fontStyle: 'italic',
   },
-
-  // Cost
   costContainer: {
     marginBottom: 16,
   },
-
   costBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -604,31 +676,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.warning + '20',
   },
-
   costContent: {
     flex: 1,
   },
-
   costLabel: {
     fontFamily: 'Regular',
     fontSize: SIZES.small - 2,
     color: COLORS.gray,
   },
-
   costValue: {
     fontFamily: 'Bold',
     fontSize: SIZES.large,
     color: COLORS.warning,
     marginTop: 2,
   },
-
   costDetail: {
     fontFamily: 'Regular',
     fontSize: SIZES.small,
     color: COLORS.gray,
   },
-
-  // Footer
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -650,7 +716,6 @@ const styles = StyleSheet.create({
       },
     }),
   },
-
   sendButton: {
     backgroundColor: COLORS.blue,
     flexDirection: 'row',
@@ -660,15 +725,20 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
   },
-
   sendButtonDisabled: {
     backgroundColor: COLORS.gray,
     opacity: 0.5,
   },
-
   sendText: {
     fontFamily: 'SemiBold',
     fontSize: SIZES.medium,
     color: COLORS.white,
+  },
+  emptyText: {
+    fontFamily: 'Regular',
+    fontSize: SIZES.small,
+    color: COLORS.gray,
+    textAlign: 'center',
+    paddingVertical: 20,
   },
 });

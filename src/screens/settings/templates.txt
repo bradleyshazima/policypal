@@ -1,0 +1,55 @@
+
+const MOCK_TEMPLATES = [
+  {
+    id: '1',
+    name: '15-Day Reminder',
+    message: 'Hi {client_name}, this is a reminder that your insurance policy for {car_model} expires on {renewal_date}. Please renew on time to avoid lapses.',
+    category: 'Renewal',
+    usageCount: 45,
+    lastUsed: '2 days ago',
+  },
+  {
+    id: '2',
+    name: '7-Day Urgent Reminder',
+    message: 'Dear {client_name}, your policy expires in 7 days on {renewal_date}. Contact us immediately to renew your {insurance_type} cover for {car_model}.',
+    category: 'Renewal',
+    usageCount: 32,
+    lastUsed: '5 days ago',
+  },
+  {
+    id: '3',
+    name: 'Payment Confirmation',
+    message: 'Thank you {client_name}! We have received your payment of {amount} for policy {policy_number}. Your cover is now active.',
+    category: 'Confirmation',
+    usageCount: 28,
+    lastUsed: '1 day ago',
+  },
+  {
+    id: '4',
+    name: 'Welcome New Client',
+    message: 'Welcome {client_name}! Thank you for choosing our agency. Your {insurance_type} policy for {car_model} is now active. Policy No: {policy_number}',
+    category: 'Welcome',
+    usageCount: 15,
+    lastUsed: '3 days ago',
+  },
+  {
+    id: '5',
+    name: 'Expiry Day Alert',
+    message: 'URGENT: {client_name}, your insurance expires TODAY! Renew now to maintain coverage for {car_model}. Call us: [Your Number]',
+    category: 'Alert',
+    usageCount: 8,
+    lastUsed: '1 week ago',
+  },
+];
+
+// Available variables
+const AVAILABLE_VARIABLES = [
+  { key: '{client_name}', description: "Client's full name" },
+  { key: '{car_model}', description: 'Vehicle make and model' },
+  { key: '{renewal_date}', description: 'Policy renewal/expiry date' },
+  { key: '{insurance_type}', description: 'Type of insurance cover' },
+  { key: '{policy_number}', description: 'Policy number' },
+  { key: '{amount}', description: 'Payment or premium amount' },
+  { key: '{plate_number}', description: 'Vehicle registration number' },
+  { key: '{company_name}', description: 'Your agency name' },
+];

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,55 +7,14 @@ import {
   TouchableOpacity,
   TextInput,
   Modal,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Octicons } from '@expo/vector-icons';
 import { COLORS, SIZES } from '../../constants/theme';
 import Button from '../../components/common/Button';
-
-// Mock templates data
-const MOCK_TEMPLATES = [
-  {
-    id: '1',
-    name: '15-Day Reminder',
-    message: 'Hi {client_name}, this is a reminder that your insurance policy for {car_model} expires on {renewal_date}. Please renew on time to avoid lapses.',
-    category: 'Renewal',
-    usageCount: 45,
-    lastUsed: '2 days ago',
-  },
-  {
-    id: '2',
-    name: '7-Day Urgent Reminder',
-    message: 'Dear {client_name}, your policy expires in 7 days on {renewal_date}. Contact us immediately to renew your {insurance_type} cover for {car_model}.',
-    category: 'Renewal',
-    usageCount: 32,
-    lastUsed: '5 days ago',
-  },
-  {
-    id: '3',
-    name: 'Payment Confirmation',
-    message: 'Thank you {client_name}! We have received your payment of {amount} for policy {policy_number}. Your cover is now active.',
-    category: 'Confirmation',
-    usageCount: 28,
-    lastUsed: '1 day ago',
-  },
-  {
-    id: '4',
-    name: 'Welcome New Client',
-    message: 'Welcome {client_name}! Thank you for choosing our agency. Your {insurance_type} policy for {car_model} is now active. Policy No: {policy_number}',
-    category: 'Welcome',
-    usageCount: 15,
-    lastUsed: '3 days ago',
-  },
-  {
-    id: '5',
-    name: 'Expiry Day Alert',
-    message: 'URGENT: {client_name}, your insurance expires TODAY! Renew now to maintain coverage for {car_model}. Call us: [Your Number]',
-    category: 'Alert',
-    usageCount: 8,
-    lastUsed: '1 week ago',
-  },
-];
+import Alert from '../../components/common/Alert';
+import api from '../../services/api';
+import { useFocusEffect } from '@react-navigation/native';
 
 // Available variables
 const AVAILABLE_VARIABLES = [
@@ -64,93 +23,184 @@ const AVAILABLE_VARIABLES = [
   { key: '{renewal_date}', description: 'Policy renewal/expiry date' },
   { key: '{insurance_type}', description: 'Type of insurance cover' },
   { key: '{policy_number}', description: 'Policy number' },
-  { key: '{amount}', description: 'Payment or premium amount' },
   { key: '{plate_number}', description: 'Vehicle registration number' },
-  { key: '{company_name}', description: 'Your agency name' },
+  { key: '{expiry_date}', description: 'Policy expiry date' },
 ];
 
 export default function MessageTemplatesScreen() {
-  const [templates, setTemplates] = useState(MOCK_TEMPLATES);
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showVariablesModal, setShowVariablesModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({});
 
   // Form state
   const [templateName, setTemplateName] = useState('');
   const [templateMessage, setTemplateMessage] = useState('');
   const [templateCategory, setTemplateCategory] = useState('Renewal');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchTemplates();
+    }, [])
+  );
+
+  const fetchTemplates = async () => {
+    try {
+      setLoading(true);
+      const data = await api.templates.getAll();
+      setTemplates(data.templates || []);
+    } catch (error) {
+      console.error('Fetch templates error:', error);
+      setAlertConfig({
+        type: 'danger',
+        title: 'Error',
+        message: 'Failed to load templates',
+      });
+      setShowAlert(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredTemplates = templates.filter((template) =>
     template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     template.message.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleCreateTemplate = () => {
+  const handleCreateTemplate = async () => {
     if (!templateName.trim() || !templateMessage.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setAlertConfig({
+        type: 'warning',
+        title: 'Missing Information',
+        message: 'Please fill in all fields',
+      });
+      setShowAlert(true);
       return;
     }
 
-    const newTemplate = {
-      id: Date.now().toString(),
-      name: templateName,
-      message: templateMessage,
-      category: templateCategory,
-      usageCount: 0,
-      lastUsed: 'Never',
-    };
+    setSaving(true);
 
-    setTemplates([newTemplate, ...templates]);
-    setShowCreateModal(false);
-    resetForm();
-    Alert.alert('Success', 'Template created successfully!');
+    try {
+      await api.templates.create({
+        name: templateName,
+        message: templateMessage,
+        category: templateCategory,
+      });
+
+      setShowCreateModal(false);
+      resetForm();
+      fetchTemplates();
+
+      setAlertConfig({
+        type: 'success',
+        title: 'Success',
+        message: 'Template created successfully!',
+      });
+      setShowAlert(true);
+    } catch (error) {
+      console.error('Create template error:', error);
+      setAlertConfig({
+        type: 'danger',
+        title: 'Error',
+        message: error.message || 'Failed to create template',
+      });
+      setShowAlert(true);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleEditTemplate = () => {
+  const handleEditTemplate = async () => {
     if (!templateName.trim() || !templateMessage.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setAlertConfig({
+        type: 'warning',
+        title: 'Missing Information',
+        message: 'Please fill in all fields',
+      });
+      setShowAlert(true);
       return;
     }
 
-    setTemplates(
-      templates.map((t) =>
-        t.id === selectedTemplate.id
-          ? { ...t, name: templateName, message: templateMessage, category: templateCategory }
-          : t
-      )
-    );
+    setSaving(true);
 
-    setShowEditModal(false);
-    setSelectedTemplate(null);
-    resetForm();
-    Alert.alert('Success', 'Template updated successfully!');
+    try {
+      await api.templates.update(selectedTemplate.id, {
+        name: templateName,
+        message: templateMessage,
+        category: templateCategory,
+      });
+
+      setShowEditModal(false);
+      setSelectedTemplate(null);
+      resetForm();
+      fetchTemplates();
+
+      setAlertConfig({
+        type: 'success',
+        title: 'Success',
+        message: 'Template updated successfully!',
+      });
+      setShowAlert(true);
+    } catch (error) {
+      console.error('Update template error:', error);
+      setAlertConfig({
+        type: 'danger',
+        title: 'Error',
+        message: error.message || 'Failed to update template',
+      });
+      setShowAlert(true);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDeleteTemplate = (id) => {
-    Alert.alert(
-      'Delete Template',
-      'Are you sure you want to delete this template? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            setTemplates(templates.filter((t) => t.id !== id));
-            Alert.alert('Success', 'Template deleted successfully!');
-          },
-        },
-      ]
-    );
+  const handleDeleteTemplate = async (id) => {
+    try {
+      await api.templates.delete(id);
+      fetchTemplates();
+
+      setAlertConfig({
+        type: 'success',
+        title: 'Success',
+        message: 'Template deleted successfully!',
+      });
+      setShowAlert(true);
+    } catch (error) {
+      console.error('Delete template error:', error);
+      setAlertConfig({
+        type: 'danger',
+        title: 'Error',
+        message: error.message || 'Failed to delete template',
+      });
+      setShowAlert(true);
+    }
+  };
+
+  const confirmDelete = (template) => {
+    setAlertConfig({
+      type: 'danger',
+      title: 'Delete Template',
+      message: `Are you sure you want to delete "${template.name}"? This action cannot be undone.`,
+    });
+    setSelectedTemplate(template);
+    setShowAlert(true);
   };
 
   const openEditModal = (template) => {
     setSelectedTemplate(template);
     setTemplateName(template.name);
     setTemplateMessage(template.message);
-    setTemplateCategory(template.category);
+    setTemplateCategory(template.category || 'Renewal');
     setShowEditModal(true);
   };
 
@@ -168,6 +218,15 @@ export default function MessageTemplatesScreen() {
   const insertVariable = (variable) => {
     setTemplateMessage(templateMessage + variable);
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.blue} />
+        <Text style={styles.loadingText}>Loading templates...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -217,7 +276,7 @@ export default function MessageTemplatesScreen() {
               key={template.id}
               template={template}
               onEdit={() => openEditModal(template)}
-              onDelete={() => handleDeleteTemplate(template.id)}
+              onDelete={() => confirmDelete(template)}
             />
           ))
         )}
@@ -338,6 +397,8 @@ export default function MessageTemplatesScreen() {
                 <Button
                   title={showEditModal ? 'Update Template' : 'Create Template'}
                   onPress={showEditModal ? handleEditTemplate : handleCreateTemplate}
+                  loading={saving}
+                  disabled={saving}
                 />
                 <Button
                   title="Cancel"
@@ -347,6 +408,7 @@ export default function MessageTemplatesScreen() {
                     setShowEditModal(false);
                     resetForm();
                   }}
+                  disabled={saving}
                 />
               </View>
             </ScrollView>
@@ -397,6 +459,26 @@ export default function MessageTemplatesScreen() {
           </View>
         </View>
       </Modal>
+
+      <Alert
+        visible={showAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        confirmText={alertConfig.type === 'danger' && selectedTemplate ? 'Delete' : 'OK'}
+        cancelText={alertConfig.type === 'danger' && selectedTemplate ? 'Cancel' : null}
+        onConfirm={() => {
+          if (alertConfig.type === 'danger' && selectedTemplate) {
+            handleDeleteTemplate(selectedTemplate.id);
+            setSelectedTemplate(null);
+          }
+          setShowAlert(false);
+        }}
+        onCancel={() => {
+          setSelectedTemplate(null);
+          setShowAlert(false);
+        }}
+      />
     </View>
   );
 }
@@ -419,7 +501,7 @@ const TemplateCard = ({ template, onEdit, onDelete }) => {
           </View>
           <View style={styles.templateInfo}>
             <Text style={styles.templateName}>{template.name}</Text>
-            <Text style={styles.templateCategory}>{template.category}</Text>
+            <Text style={styles.templateCategory}>{template.category || 'General'}</Text>
           </View>
         </View>
         <Octicons
@@ -432,17 +514,6 @@ const TemplateCard = ({ template, onEdit, onDelete }) => {
       {expanded && (
         <View style={styles.templateBody}>
           <Text style={styles.templateMessage}>{template.message}</Text>
-
-          <View style={styles.templateStats}>
-            <View style={styles.stat}>
-              <Octicons name="paper-airplane" size={12} color={COLORS.gray} />
-              <Text style={styles.statText}>Used {template.usageCount} times</Text>
-            </View>
-            <View style={styles.stat}>
-              <Octicons name="clock" size={12} color={COLORS.gray} />
-              <Text style={styles.statText}>Last used {template.lastUsed}</Text>
-            </View>
-          </View>
 
           <View style={styles.templateActions}>
             <TouchableOpacity style={styles.actionButton} onPress={onEdit}>
@@ -470,8 +541,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.primary,
   },
-
-  /* Header */
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontFamily: 'Regular',
+    fontSize: SIZES.small,
+    color: COLORS.gray,
+  },
   header: {
     backgroundColor: COLORS.lightGray,
     paddingHorizontal: 16,
@@ -511,13 +592,9 @@ const styles = StyleSheet.create({
     fontSize: SIZES.xsmall,
     color: COLORS.blue,
   },
-
-  /* Content */
   contentContainer: {
     padding: 16,
   },
-
-  /* Template Card */
   templateCard: {
     backgroundColor: COLORS.lightGray,
     borderRadius: 12,
@@ -571,24 +648,10 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 12,
   },
-  templateStats: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 12,
-  },
-  stat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statText: {
-    fontFamily: 'Regular',
-    fontSize: SIZES.xsmall,
-    color: COLORS.gray,
-  },
   templateActions: {
     flexDirection: 'row',
     gap: 8,
+    marginTop: 12,
   },
   actionButton: {
     flex: 1,
@@ -611,8 +674,6 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     color: COLORS.danger,
   },
-
-  /* FAB */
   fab: {
     position: 'absolute',
     bottom: 24,
@@ -629,8 +690,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-
-  /* Empty State */
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -649,8 +708,6 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     textAlign: 'center',
   },
-
-  /* Modal */
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -685,8 +742,6 @@ const styles = StyleSheet.create({
     fontSize: SIZES.large,
     color: COLORS.black,
   },
-
-  /* Form */
   inputGroup: {
     marginBottom: 20,
   },
@@ -767,8 +822,6 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginTop: 4,
   },
-
-  /* Preview */
   previewContainer: {
     marginBottom: 20,
   },
@@ -791,13 +844,9 @@ const styles = StyleSheet.create({
     color: COLORS.black,
     lineHeight: 20,
   },
-
-  /* Modal Actions */
   modalActions: {
     gap: 8,
   },
-
-  /* Variables Modal */
   variablesDescription: {
     fontFamily: 'Regular',
     fontSize: SIZES.small,

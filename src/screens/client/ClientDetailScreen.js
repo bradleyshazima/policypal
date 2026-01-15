@@ -4,36 +4,149 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  FlatList,
+  ActivityIndicator,
+  Linking,
 } from 'react-native';
-import React, { useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState, useEffect } from 'react';
 import { COLORS, SIZES } from '../../constants/theme';
 import { Octicons, FontAwesome } from '@expo/vector-icons';
 import Button from '../../components/common/Button';
+import Alert from '../../components/common/Alert';
+import api from '../../services/api';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
-const TABS = ['Overview', 'Policy History', 'Reminders', 'Notes'];
+const TABS = ['Overview', 'Reminders', 'Notes'];
 
-export default function ClientDetailScreen({ navigation }) {
+export default function ClientDetailScreen({ navigation, route }) {
+  const { clientId } = route.params;
   const [activeTab, setActiveTab] = useState('Overview');
+  const [client, setClient] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({});
+
+  const fetchClientDetails = async () => {
+    try {
+      setLoading(true);
+      const data = await api.clients.getById(clientId);
+      setClient(data.client);
+    } catch (error) {
+      console.error('Fetch client error:', error);
+      setAlertConfig({
+        type: 'danger',
+        title: 'Error',
+        message: 'Failed to load client details',
+      });
+      setShowAlert(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClientDetails();
+  }, [clientId]);
+
+  // Refresh when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchClientDetails();
+    }, [clientId])
+  );
+
+  const handleDelete = () => {
+    setAlertConfig({
+      type: 'danger',
+      title: 'Delete Client',
+      message: 'Are you sure you want to delete this client? This action cannot be undone.',
+    });
+    setShowAlert(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await api.clients.delete(clientId);
+      navigation.goBack();
+    } catch (error) {
+      console.error('Delete client error:', error);
+      setAlertConfig({
+        type: 'danger',
+        title: 'Error',
+        message: 'Failed to delete client',
+      });
+      setShowAlert(true);
+    }
+  };
+
+  const handleCall = (phoneNumber) => {
+    Linking.openURL(`tel:${phoneNumber}`);
+  };
+
+  const handleSMS = (phoneNumber) => {
+    Linking.openURL(`sms:${phoneNumber}`);
+  };
+
+  const handleWhatsApp = (phoneNumber) => {
+    const cleanNumber = phoneNumber.replace(/[^0-9]/g, '');
+    Linking.openURL(`whatsapp://send?phone=${cleanNumber}`);
+  };
+
+  const handleEmail = (email) => {
+    Linking.openURL(`mailto:${email}`);
+  };
+
+  const getDaysToExpiry = (expiryDate) => {
+    if (!expiryDate) return null;
+    const expiry = new Date(expiryDate);
+    const today = new Date();
+    const diffTime = expiry - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.blue} />
+        <Text style={styles.loadingText}>Loading client details...</Text>
+      </View>
+    );
+  }
+
+  if (!client) {
+    return (
+      <View style={styles.errorContainer}>
+        <Octicons name="alert" size={48} color={COLORS.danger} />
+        <Text style={styles.errorText}>Client not found</Text>
+        <Button title="Go Back" onPress={() => navigation.goBack()} />
+      </View>
+    );
+  }
+
+  const daysToExpiry = getDaysToExpiry(client.expiry_date);
 
   return (
     <View style={{ flex: 1 }}>
       {/* ================= HEADER ================= */}
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={styles.avatar} />
+          <View style={styles.avatar}>
+            <Octicons name="person" size={24} color={COLORS.blue} />
+          </View>
           <View>
-            <Text style={styles.clientName}>Bradley Shazima</Text>
-            <Text style={styles.subText}>Comprehensive Cover</Text>
+            <Text style={styles.clientName}>{client.full_name}</Text>
+            <Text style={styles.subText}>{client.insurance_type || 'N/A'}</Text>
           </View>
         </View>
 
         <View style={{ flexDirection: 'row', gap: 12 }}>
-          <TouchableOpacity onPress={() => navigation.navigate('EditClient')}>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('EditClient', { clientId: client.id })}
+          >
             <Octicons name="pencil" size={18} color={COLORS.blue} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => console.log('Delete client')}>
+          <TouchableOpacity onPress={handleDelete}>
             <Octicons name="trash" size={18} color={COLORS.danger} />
           </TouchableOpacity>
         </View>
@@ -63,85 +176,154 @@ export default function ClientDetailScreen({ navigation }) {
       </View>
 
       {/* ================= CONTENT ================= */}
-      <ScrollView contentContainerStyle={styles.main} showsVerticalScrollIndicator={false}>
-        {activeTab === 'Overview' && <OverviewTab />}
-        {activeTab === 'Policy History' && <PolicyHistoryTab />}
-        {activeTab === 'Reminders' && <RemindersTab />}
-        {activeTab === 'Notes' && <NotesTab />}
+      <ScrollView 
+        contentContainerStyle={styles.main} 
+        showsVerticalScrollIndicator={false}
+      >
+        {activeTab === 'Overview' && (
+          <>
+            <InfoCard title="Contact Information">
+              <InfoRow label="Phone" value={client.phone || 'N/A'} />
+              {client.alternative_phone && (
+                <InfoRow label="Alt. Phone" value={client.alternative_phone} />
+              )}
+              {client.email && <InfoRow label="Email" value={client.email} />}
+              {client.physical_address && (
+                <InfoRow label="Address" value={client.physical_address} />
+              )}
+              {client.id_number && (
+                <InfoRow label="ID Number" value={client.id_number} />
+              )}
+            </InfoCard>
+
+            <InfoCard title="Vehicle Information">
+              <InfoRow 
+                label="Make & Model" 
+                value={`${client.car_make} ${client.car_model}`} 
+              />
+              {client.plate_number && (
+                <InfoRow label="Plate" value={client.plate_number} />
+              )}
+              {client.car_color && (
+                <InfoRow label="Color" value={client.car_color} />
+              )}
+              {client.year_of_manufacture && (
+                <InfoRow label="Year" value={client.year_of_manufacture} />
+              )}
+              {client.vin_number && (
+                <InfoRow label="VIN" value={client.vin_number} />
+              )}
+            </InfoCard>
+
+            <InfoCard title="Insurance Details">
+              <InfoRow 
+                label="Policy No." 
+                value={client.policy_number || 'N/A'} 
+              />
+              <InfoRow 
+                label="Company" 
+                value={client.insurance_company || 'N/A'} 
+              />
+              {client.premium_amount && (
+                <InfoRow 
+                  label="Premium" 
+                  value={`${client.currency || ''} ${client.premium_amount}`} 
+                />
+              )}
+              {client.start_date && (
+                <InfoRow 
+                  label="Start Date" 
+                  value={new Date(client.start_date).toLocaleDateString()} 
+                />
+              )}
+              <InfoRow 
+                label="Expiry" 
+                value={new Date(client.expiry_date).toLocaleDateString()} 
+              />
+              {daysToExpiry !== null && (
+                <Text style={[
+                  styles.countdown,
+                  { color: daysToExpiry < 7 ? COLORS.danger : 
+                          daysToExpiry < 30 ? COLORS.warning : COLORS.success }
+                ]}>
+                  ⏳ {daysToExpiry > 0 
+                    ? `${daysToExpiry} days to renewal` 
+                    : daysToExpiry === 0 
+                    ? 'Expires today!' 
+                    : 'Expired'}
+                </Text>
+              )}
+            </InfoCard>
+
+            <View style={styles.quickActions}>
+              <QuickAction 
+                icon="phone" 
+                label="Call" 
+                onPress={() => handleCall(client.phone)}
+              />
+              <QuickAction 
+                icon="comment" 
+                label="SMS" 
+                onPress={() => handleSMS(client.phone)}
+              />
+              <QuickAction 
+                icon="whatsapp" 
+                label="WhatsApp" 
+                onPress={() => handleWhatsApp(client.phone)}
+              />
+              {client.email && (
+                <QuickAction 
+                  icon="envelope" 
+                  label="Email" 
+                  onPress={() => handleEmail(client.email)}
+                />
+              )}
+            </View>
+          </>
+        )}
+
+        {activeTab === 'Reminders' && (
+          <InfoCard title="Reminder Settings">
+            <InfoRow 
+              label="Reminders Enabled" 
+              value={client.reminders_enabled ? 'Yes' : 'No'} 
+            />
+            {client.custom_message && (
+              <>
+                <Text style={styles.label}>Custom Message:</Text>
+                <Text style={styles.value}>{client.custom_message}</Text>
+              </>
+            )}
+            <Button 
+              title="Send Manual Reminder" 
+              onPress={() => navigation.navigate('RemindersTab', {
+                screen: 'SendReminder',
+                params: { preselectedClientId: client.id }
+              })}
+            />
+          </InfoCard>
+        )}
+
+        {activeTab === 'Notes' && (
+          <InfoCard title="Notes">
+            <Text style={styles.label}>No notes available</Text>
+          </InfoCard>
+        )}
       </ScrollView>
 
-
+      <Alert
+        visible={showAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowAlert(false)}
+      />
     </View>
   );
 }
-
-/* =====================================================
-   TABS CONTENT
-===================================================== */
-
-const OverviewTab = () => (
-  <>
-    <InfoCard title="Contact Information">
-      <InfoRow label="Phone" value="+254 712 345 678" />
-      <InfoRow label="Email" value="bradley@email.com" />
-      <InfoRow label="Address" value="Nairobi, Kenya" />
-    </InfoCard>
-
-    <InfoCard title="Vehicle Information">
-      <InfoRow label="Type" value="Motorcycle" />
-      <InfoRow label="Plate" value="KMTC 114A" />
-      <InfoRow label="Color" value="Black" />
-    </InfoCard>
-
-    <InfoCard title="Insurance Details">
-      <InfoRow label="Policy No." value="INS-23941" />
-      <InfoRow label="Company" value="Jubilee Insurance" />
-      <InfoRow label="Expiry" value="12 Feb 2026" />
-      <Text style={styles.countdown}>⏳ 28 days to renewal</Text>
-    </InfoCard>
-
-    <View style={styles.quickActions}>
-      <QuickAction icon="phone" label="Call" />
-      <QuickAction icon="comment" label="SMS" />
-      <QuickAction icon="whatsapp" label="WhatsApp" />
-      <QuickAction icon="envelope" label="Email" />
-    </View>
-  </>
-);
-
-const PolicyHistoryTab = () => (
-  <InfoCard title="Policy Timeline">
-    <TimelineItem
-      title="Policy Renewed"
-      date="12 Feb 2025"
-      description="Comprehensive cover renewed"
-    />
-    <TimelineItem
-      title="Policy Created"
-      date="12 Feb 2024"
-      description="Initial policy purchase"
-    />
-  </InfoCard>
-);
-
-const RemindersTab = () => (
-  <InfoCard title="Reminders">
-    <ReminderItem status="Delivered" date="01 Feb 2026" />
-    <ReminderItem status="Pending" date="05 Feb 2026" />
-    <ReminderItem status="Failed" date="07 Feb 2026" />
-  </InfoCard>
-);
-
-const NotesTab = () => (
-  <>
-    <InfoCard title="Notes">
-      <NoteItem text="Client prefers WhatsApp reminders." />
-      <NoteItem text="Follow up on renewal payment." />
-    </InfoCard>
-
-    <Button title="+ Add Note" onPress={() => console.log('Add note')} />
-  </>
-);
 
 /* =====================================================
    SMALL REUSABLE COMPONENTS
@@ -161,45 +343,11 @@ const InfoRow = ({ label, value }) => (
   </View>
 );
 
-const QuickAction = ({ icon, label }) => (
-  <TouchableOpacity style={styles.quickAction}>
+const QuickAction = ({ icon, label, onPress }) => (
+  <TouchableOpacity style={styles.quickAction} onPress={onPress}>
     <FontAwesome name={icon} size={16} color={COLORS.blue} />
     <Text style={styles.quickText}>{label}</Text>
   </TouchableOpacity>
-);
-
-const TimelineItem = ({ title, date, description }) => (
-  <View style={{ marginBottom: 12 }}>
-    <Text style={styles.value}>{title}</Text>
-    <Text style={styles.subText}>{date}</Text>
-    <Text style={styles.label}>{description}</Text>
-  </View>
-);
-
-const ReminderItem = ({ status, date }) => (
-  <View style={styles.row}>
-    <Text style={styles.value}>{date}</Text>
-    <Text
-      style={{
-        fontFamily: 'Medium',
-        color:
-          status === 'Delivered'
-            ? COLORS.success
-            : status === 'Failed'
-            ? COLORS.danger
-            : COLORS.warning,
-      }}
-    >
-      {status}
-    </Text>
-  </View>
-);
-
-const NoteItem = ({ text }) => (
-  <View style={{ marginBottom: 12 }}>
-    <Text style={styles.value}>{text}</Text>
-    <Text style={styles.subText}>Added today</Text>
-  </View>
 );
 
 /* =====================================================
@@ -213,6 +361,32 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
     minHeight: '100%'
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontFamily: 'Regular',
+    fontSize: SIZES.small,
+    color: COLORS.gray,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    padding: 20,
+  },
+  errorText: {
+    fontFamily: 'SemiBold',
+    fontSize: SIZES.large,
+    color: COLORS.black,
+    marginTop: 16,
+    marginBottom: 24,
+  },
   header: {
     backgroundColor: COLORS.lightGray,
     padding: 16,
@@ -225,6 +399,8 @@ const styles = StyleSheet.create({
     height: 48,
     backgroundColor: COLORS.accent,
     borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   clientName: {
     fontFamily: 'SemiBold',
@@ -287,7 +463,6 @@ const styles = StyleSheet.create({
   },
   countdown: {
     fontFamily: 'Medium',
-    color: COLORS.warning,
     marginTop: 8,
   },
   quickActions: {
@@ -303,17 +478,5 @@ const styles = StyleSheet.create({
     fontFamily: 'Regular',
     fontSize: SIZES.xsmall,
     color: COLORS.blue,
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    backgroundColor: COLORS.blue,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
   },
 });

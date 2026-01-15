@@ -3,7 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './src/navigation/AppNavigator';
 import { useFonts } from 'expo-font';
 import { View, ActivityIndicator } from 'react-native';
-import { ThemeProvider } from './src/context/ThemeContext';
+import { AuthProvider } from './src/context/AuthContext';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -23,11 +23,11 @@ export default function App() {
   }
 
   return (
-    <ThemeProvider>
+    <AuthProvider>
       <StatusBar style="auto" />
       <NavigationContainer>
         <AppNavigator />
       </NavigationContainer>
-    </ThemeProvider>
+    </AuthProvider>
   );
 }

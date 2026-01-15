@@ -234,6 +234,8 @@ const styles = StyleSheet.create({
   },
   categoriesContainer: {
     marginBottom: 16,
+    minHeight: 32,
+    maxHeight: 32,
   },
   categoriesContent: {
     paddingHorizontal: 16,
@@ -241,10 +243,12 @@ const styles = StyleSheet.create({
   },
   categoryChip: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 4,
     backgroundColor: COLORS.lightGray,
     borderRadius: 20,
     marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   categoryChipActive: {
     backgroundColor: COLORS.blue,

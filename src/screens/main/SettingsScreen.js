@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Octicons } from '@expo/vector-icons';
 import { COLORS, SIZES } from '../../constants/theme';
-import { useTheme } from '../../context/ThemeContext';
+import { Share } from 'react-native';
 
 // Import Modals based on your file structure
 import ReminderTimingsModal from '../../components/modals/ReminderTimingsModal';
@@ -28,10 +28,10 @@ export default function SettingsScreen({ navigation }) {
   const [clientAlerts, setClientAlerts] = useState(true);
   
   // Theme Context
-  const { isDarkMode, toggleDarkMode } = useTheme();
+  // const { isDarkMode, toggleDarkMode } = useTheme();
 
   // Generate dynamic styles based on current theme
-  const styles = useMemo(() => getStyles(), [isDarkMode]);
+  const styles = useMemo(() => getStyles());
 
   // State for Modals
   const [reminderModalVisible, setReminderModalVisible] = useState(false);
@@ -60,6 +60,17 @@ export default function SettingsScreen({ navigation }) {
         { text: 'Delete', style: 'destructive', onPress: () => console.log('Account deleted') },
       ]
     );
+  };
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: 'Check out PolicyPal - The best insurance reminder app! Download now: https://policypal.com',
+        title: 'PolicyPal Insurance Management'
+      });
+    } catch (error) {
+      console.error('Share error:', error);
+    }
   };
 
   return (
@@ -243,7 +254,7 @@ export default function SettingsScreen({ navigation }) {
           <MenuItem
             icon="share"
             label="Share App"
-            onPress={() => console.log('Share app')}
+            onPress={handleShare}
             styles={styles}
           />
         </Section>

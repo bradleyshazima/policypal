@@ -1,39 +1,59 @@
-import { View, Text, Image, StyleSheet, TouchableOpacity, Easing } from 'react-native'
-import React, { useState } from 'react'
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES } from '../../constants/theme';
-import SignupScreen from './SignupScreen';
 import Input from '../../components/common/Input';
-import CheckBox from '@react-native-community/checkbox';
 import { Octicons } from '@expo/vector-icons';
 import Button from '../../components/common/Button';
 import { useNavigation } from '@react-navigation/native';
 import Alert from '../../components/common/Alert';
+import { useAuth } from '../../context/AuthContext';
 
-
-export default function LoginScreen({ setIsAuthenticated }) {
+export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const emailValid = email.includes('@') && email.includes('.');
-  const [checked, setChecked] = useState(false);
-  const loading = useState(false)
-  const navigation = useNavigation();
-
+  const [loading, setLoading] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({});
+  const navigation = useNavigation();
+  const { login } = useAuth();
 
-    const handleLogin = () => {
-      const demoUser = {
-        email: 'brad@policy.com',
-        password: 'adminpass',
-      };
+  const emailValid = email.includes('@') && email.includes('.');
 
-      if (email === demoUser.email && password === demoUser.password) {
-        setIsAuthenticated(true);
-      } else {
-        setShowAlert(true);
-      }
-    };
+  const handleLogin = async () => {
+    if (!email || !password) {
+      setAlertConfig({
+        type: 'warning',
+        title: 'Missing Information',
+        message: 'Please enter both email and password'
+      });
+      setShowAlert(true);
+      return;
+    }
 
+    if (!emailValid) {
+      setAlertConfig({
+        type: 'warning',
+        title: 'Invalid Email',
+        message: 'Please enter a valid email address'
+      });
+      setShowAlert(true);
+      return;
+    }
+
+    setLoading(true);
+    const result = await login(email.toLowerCase(), password);
+    setLoading(false);
+
+    if (!result.success) {
+      setAlertConfig({
+        type: 'danger',
+        title: 'Login Failed',
+        message: result.error || 'Invalid email or password'
+      });
+      setShowAlert(true);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.main}>
@@ -46,29 +66,21 @@ export default function LoginScreen({ setIsAuthenticated }) {
           value={email}
           onChangeText={setEmail}
           error={!emailValid && email ? 'Invalid email address' : null}
+          keyboardType="email-address"
+          autoCapitalize="none"
         />
 
-      <Input
-        label="Password"
-        placeholder="Enter your password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry={true}
-      />
+        <Input
+          label="Password"
+          placeholder="Enter your password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={true}
+        />
       </View>
       <View style={{width:'100%',display: 'flex',flexDirection:'row',alignItems:'center', justifyContent:'space-between'}}>
-        <View style={styles.container}>
-          <TouchableOpacity
-            style={[styles.checkbox, checked && styles.checked]}
-            onPress={() => setChecked(!checked)}
-            activeOpacity={0.8}
-          >
-            {checked && <Octicons name="check" size={10} color="white" />}
-          </TouchableOpacity>
-          <Text style={styles.label}>Remember me</Text>
-        </View>
-        <TouchableOpacity>
-          <Text style={{color:COLORS.blue, fontFamily:'Regular', fontSize:SIZES.small}}>Forgot password</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+          <Text style={{color:COLORS.blue, fontFamily:'Regular', fontSize:SIZES.small}}>Forgot password?</Text>
         </TouchableOpacity>
       </View>
 
@@ -76,23 +88,28 @@ export default function LoginScreen({ setIsAuthenticated }) {
         title="Login"
         disabled={!email || !password || !emailValid}
         onPress={handleLogin}
+        loading={loading}
       />
+
+      <TouchableOpacity style={{marginTop:20}} onPress={() => navigation.navigate('SignUp')}>
+        <Text style={{color:COLORS.gray, fontFamily:'Regular', fontSize:SIZES.small}}>
+          Don't have an account? <Text style={{color:COLORS.blue, fontFamily:'Medium'}}>Sign Up</Text>
+        </Text>
+      </TouchableOpacity>
 
       <Alert
         visible={showAlert}
-        title="Login Failed"
-        message="Invalid email address or password"
-        confirmText="Try Again"
-        duration={200}
-        easing={Easing.out(Easing.cubic)}
-        slideDistance={60}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        confirmText="OK"
         onConfirm={() => setShowAlert(false)}
       />
     </SafeAreaView>
-  )
+  );
 }
 
-const styles=StyleSheet.create({
+const styles = StyleSheet.create({
   main: {
     height: '100%',
     display: 'flex',
@@ -101,30 +118,4 @@ const styles=StyleSheet.create({
     paddingHorizontal: 32,
     backgroundColor:COLORS.white,
   },
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 8,
-    width: '50%'
-  },
-  checkbox: {
-    width: 16,
-    height: 16,
-    borderWidth: 2,
-    borderColor: 'gray',
-    borderRadius: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  checked: {
-    backgroundColor: COLORS.blue,
-    borderColor: COLORS.blue,
-  },
-  label: {
-    marginLeft: 8,
-    fontSize: SIZES.small,
-    fontFamily: 'Regular',
-    color: COLORS.black,
-  },
-})
+});

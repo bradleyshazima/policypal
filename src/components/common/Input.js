@@ -9,6 +9,8 @@ export default function Input({
   error,
   containerStyle,
   inputStyle,
+  keyboardType,
+  autoCapitalize = 'sentences',
 }) {
   return (
     <View style={[styles.container, containerStyle]}>
@@ -19,6 +21,8 @@ export default function Input({
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor="#999"
+        keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize}
         style={[
           styles.input,
           error && styles.inputError,
