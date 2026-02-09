@@ -7,7 +7,6 @@ import { COLORS } from '../../constants/theme';
 import SettingsScreen from '../../screens/main/SettingsScreen';
 import ProfileScreen from '../../screens/settings/ProfileScreen';
 import SubscriptionScreen from '../../screens/settings/SubscriptionScreen';
-import MessageTemplatesScreen from '../../screens/settings/MessageTemplatesScreen';
 import AboutAppScreen from '../../screens/settings/AboutAppScreen';
 import TermsScreen from '../../screens/settings/TermsScreen';
 import PrivacyPolicyScreen from '../../screens/settings/PrivacyPolicyScreen';
@@ -59,18 +58,6 @@ const SettingsStackNavigator = () => {
         component={SubscriptionScreen}
         options={({ navigation }) => ({
           headerTitle: 'Subscription Plans',
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Octicons name="chevron-left" size={24} color={COLORS.blue} />
-            </TouchableOpacity>
-          ),
-        })}
-      />
-      <Stack.Screen 
-        name="MessageTemplates" 
-        component={MessageTemplatesScreen}
-        options={({ navigation }) => ({
-          headerTitle: 'Message Templates',
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()}>
               <Octicons name="chevron-left" size={24} color={COLORS.blue} />

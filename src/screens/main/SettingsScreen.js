@@ -96,70 +96,6 @@ export default function SettingsScreen({ navigation }) {
           />
         </Section>
 
-        {/* ==================== REMINDER SETTINGS ==================== */}
-        <Section title="Reminder Settings" styles={styles}>
-          <MenuItem
-            icon="clock"
-            label="Default Reminder Timings"
-            value="15, 10, 5, 1 days"
-            onPress={() => setReminderModalVisible(true)}
-            styles={styles}
-          />
-          <MenuItem
-            icon="note"
-            label="Default Message Templates"
-            onPress={() => navigation.navigate('MessageTemplates')}
-            styles={styles}
-          />
-          <MenuItem
-            icon="paper-airplane"
-            label="Default Delivery Method"
-            value="SMS"
-            onPress={() => setDeliveryModalVisible(true)}
-            styles={styles}
-          />
-          <MenuItemWithSwitch
-            icon="zap"
-            label="Auto-Reminder"
-            description="Automatically send reminders"
-            value={autoReminders}
-            onValueChange={setAutoReminders}
-            styles={styles}
-          />
-        </Section>
-
-        {/* ==================== NOTIFICATION SETTINGS ==================== */}
-        <Section title="Notification Settings" styles={styles}>
-          <MenuItemWithSwitch
-            icon="bell"
-            label="Push Notifications"
-            value={pushNotifications}
-            onValueChange={setPushNotifications}
-            styles={styles}
-          />
-          <MenuItemWithSwitch
-            icon="mail"
-            label="Email Notifications"
-            value={emailNotifications}
-            onValueChange={setEmailNotifications}
-            styles={styles}
-          />
-          <MenuItemWithSwitch
-            icon="check-circle"
-            label="Reminder Confirmations"
-            value={reminderConfirmations}
-            onValueChange={setReminderConfirmations}
-            styles={styles}
-          />
-          <MenuItemWithSwitch
-            icon="pulse"
-            label="Client Activity Alerts"
-            value={clientAlerts}
-            onValueChange={setClientAlerts}
-            styles={styles}
-          />
-        </Section>
-
         {/* ==================== SUBSCRIPTION ==================== */}
         <Section title="Subscription" styles={styles}>
           <View style={styles.subscriptionCard}>
@@ -187,45 +123,6 @@ export default function SettingsScreen({ navigation }) {
             icon="file"
             label="Billing Information"
             onPress={() => navigation.navigate('BillingInfo')}
-            styles={styles}
-          />
-        </Section>
-
-        {/* ==================== INTEGRATIONS ==================== */}
-        <Section title="Integrations" styles={styles}>
-          <MenuItem
-            icon="plug"
-            label="Twilio SMS Service"
-            value="Connected"
-            valueColor={COLORS.success}
-            onPress={() => console.log('Twilio')}
-            styles={styles}
-          />
-          <MenuItem
-            icon="comment"
-            label="WhatsApp Business"
-            value="Not connected"
-            valueColor={COLORS.gray}
-            onPress={() => console.log('WhatsApp')}
-            styles={styles}
-          />
-        </Section>
-
-        {/* ==================== PREFERENCES ==================== */}
-        <Section title="Preferences" styles={styles}>
-          <MenuItem
-            icon="graph"
-            label="Currency Preference"
-            value="KES (Ksh)"
-            onPress={() => setCurrencyModalVisible(true)}
-            styles={styles}
-          />
-
-          <MenuItem
-            icon="globe"
-            label="Time Zone"
-            value="East Africa Time"
-            onPress={() => setTimeZoneModalVisible(true)}
             styles={styles}
           />
         </Section>

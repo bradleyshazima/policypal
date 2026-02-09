@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Change this to your actual backend URL
 // For local testing: use your computer's IP address (not localhost)
 // Example: 'http://192.168.88.252:3000/api'
-const API_URL = 'http://192.168.88.252:3000/api';
+const API_URL = 'http://192.168.88.15:3000/api';
 
 class ApiService {
   // Get auth token
@@ -147,6 +147,16 @@ class ApiService {
       const query = new URLSearchParams(params).toString();
       return this.request(`/reminders/statistics${query ? `?${query}` : ''}`);
     },
+
+    delete: (id) =>
+      this.request(`/reminders/${id}`, {
+        method: 'DELETE',
+      }),
+
+    resend: (id) =>
+      this.request(`/reminders/${id}/resend`, {
+        method: 'POST',
+      }),
   };
 
   // Template endpoints
