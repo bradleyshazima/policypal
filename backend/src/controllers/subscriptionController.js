@@ -22,17 +22,16 @@ exports.getCurrentSubscription = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Get active subscription
+    // Get active subscription - Using ilike for case-insensitivity
     const { data: subscription, error } = await supabase
       .from('subscriptions')
       .select('*, subscription_plans(*)')
       .eq('user_id', userId)
-      .eq('status', 'active')
+      .ilike('status', 'active') // Use ilike to handle 'Active' or 'active'
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
 
-    // Check trial status
     let trialStatus = null;
     if (!subscription && req.user.subscription_status === 'trial') {
       const trialEndDate = new Date(req.user.trial_end_date);
@@ -41,11 +40,12 @@ exports.getCurrentSubscription = async (req, res) => {
 
       trialStatus = {
         status: 'trial',
-        daysRemaining,
+        daysRemaining: daysRemaining > 0 ? daysRemaining : 0,
         endDate: req.user.trial_end_date
       };
     }
 
+    // Return the response
     res.json({
       subscription: subscription || null,
       trial: trialStatus

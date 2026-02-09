@@ -74,14 +74,14 @@ export default function EditClientScreen({ navigation, route }) {
       // Populate form with client data
       setFullName(client.full_name || '');
       setPhone(client.phone || '');
-      setAltPhone(client.alternative_phone || '');
+      setAltPhone(client.alt_phone || '');
       setEmail(client.email || '');
-      setAddress(client.physical_address || '');
+      setAddress(client.address || '');
       setIdNumber(client.id_number || '');
       
       setMake(client.car_make || '');
       setModel(client.car_model || '');
-      setYear(client.year_of_manufacture || '');
+      setYear(client.car_year || '');
       setPlate(client.plate_number || '');
       setVin(client.vin_number || '');
       setColor(client.car_color || '');
@@ -89,7 +89,7 @@ export default function EditClientScreen({ navigation, route }) {
       setInsuranceType(client.insurance_type || '');
       setCompany(client.insurance_company || '');
       setPolicyNumber(client.policy_number || '');
-      setPremium(client.premium_amount || '');
+      setPremium(client.coverage_amount || '');
       setCurrency(client.currency || 'KES');
       setStartDate(client.start_date || '');
       setExpiryDate(client.expiry_date || '');
@@ -121,20 +121,20 @@ export default function EditClientScreen({ navigation, route }) {
       const updates = {
         full_name: fullName,
         phone: phone,
-        alternative_phone: altPhone || null,
+        alt_phone: altPhone || null,
         email: email || null,
-        physical_address: address || null,
+        address: address || null,
         id_number: idNumber || null,
         car_make: make,
         car_model: model,
-        year_of_manufacture: year || null,
+        car_year: year || null,
         plate_number: plate || null,
         vin_number: vin || null,
         car_color: color || null,
         insurance_type: insuranceType,
         insurance_company: company || null,
         policy_number: policyNumber || null,
-        premium_amount: premium || null,
+        coverage_amount: premium || null,
         currency: currency,
         start_date: startDate || null,
         expiry_date: expiryDate,
@@ -156,7 +156,7 @@ export default function EditClientScreen({ navigation, route }) {
       // Navigate back after short delay
       setTimeout(() => {
         navigation.goBack();
-      }, 1500);
+      }, 1000);
     } catch (error) {
       console.error('Update client error:', error);
       setAlertConfig({

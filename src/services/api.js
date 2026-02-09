@@ -202,6 +202,26 @@ class ApiService {
 
     getUsage: () => this.request('/subscription/usage'),
   };
+
+  // Notifications endpoints
+  notifications = {
+    getAll: () => this.request('/notifications'),
+
+    markAllRead: () =>
+      this.request('/notifications/mark-all-read', {
+        method: 'PUT',
+      }),
+
+    delete: (id) =>
+      this.request(`/notifications/${id}`, {
+        method: 'DELETE',
+      }),
+
+    deleteAll: () =>
+      this.request('/notifications', {
+        method: 'DELETE',
+      }),
+  };
 }
 
 export default new ApiService();

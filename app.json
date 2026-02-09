@@ -26,6 +26,9 @@
     },
     "web": {
       "favicon": "./assets/applogo.png"
-    }
+    },
+    "plugins": [
+      "expo-mail-composer"
+    ]
   }
 }

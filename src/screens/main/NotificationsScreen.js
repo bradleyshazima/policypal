@@ -1,98 +1,91 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Alert,
+  Animated,
+  Alert as RNAlert,
+  ActivityIndicator,
 } from 'react-native';
 import { Octicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, SIZES } from '../../constants/theme';
-
-// Mock notifications data
-const MOCK_NOTIFICATIONS = [
-  {
-    id: '1',
-    type: 'success',
-    title: 'Reminder Delivered',
-    message: 'Your reminder to Bradley Shazima was successfully delivered via SMS',
-    timestamp: '2 min ago',
-    read: false,
-    category: 'reminders',
-  },
-  {
-    id: '2',
-    type: 'warning',
-    title: 'Payment Reminder Failed',
-    message: 'Failed to send reminder to Kevin Otieno. Invalid phone number.',
-    timestamp: '15 min ago',
-    read: false,
-    category: 'reminders',
-  },
-  {
-    id: '3',
-    type: 'info',
-    title: 'New Client Added',
-    message: 'Sarah Wanjiru has been added to your client list',
-    timestamp: '1 hour ago',
-    read: true,
-    category: 'system',
-  },
-  {
-    id: '4',
-    type: 'warning',
-    title: 'Policy Expiring Soon',
-    message: 'Henry Shikoli\'s policy expires in 7 days. Send a reminder?',
-    timestamp: '2 hours ago',
-    read: false,
-    category: 'reminders',
-  },
-  {
-    id: '5',
-    type: 'success',
-    title: 'Payment Received',
-    message: 'Policy renewed for Faith Busolo - KCY 184Y',
-    timestamp: '3 hours ago',
-    read: true,
-    category: 'system',
-  },
-  {
-    id: '6',
-    type: 'info',
-    title: 'System Update',
-    message: 'PolicyPal has been updated to version 1.2.0. Check out new features!',
-    timestamp: '5 hours ago',
-    read: true,
-    category: 'system',
-  },
-  {
-    id: '7',
-    type: 'success',
-    title: 'Bulk Reminders Sent',
-    message: '15 reminders sent successfully to clients with policies expiring this month',
-    timestamp: '1 day ago',
-    read: true,
-    category: 'reminders',
-  },
-  {
-    id: '8',
-    type: 'warning',
-    title: 'Trial Ending Soon',
-    message: 'Your trial ends in 3 days. Upgrade to continue using all features.',
-    timestamp: '1 day ago',
-    read: false,
-    category: 'system',
-  },
-];
-
-const FILTERS = ['All', 'Unread', 'Reminders', 'System'];
+import api from '../../services/api';
 
 export default function NotificationsScreen() {
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('All');
 
-  // Filter notifications
+  const FILTERS = ['All', 'Unread', 'Reminders', 'System'];
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const data = await api.notifications.getAll();
+      setNotifications(data.notifications || []);
+    } catch (error) {
+      console.error('Fetch notifications error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  // Mark all as read when user leaves the screen
+  useFocusEffect(
+    useCallback(() => {
+      // Refresh notifications when screen comes into focus
+      fetchNotifications();
+
+      // Return cleanup function that runs when leaving screen
+      return async () => {
+        try {
+          // Mark all current notifications as read
+          await api.notifications.markAllRead();
+        } catch (error) {
+          console.error('Error marking notifications as read:', error);
+        }
+      };
+    }, [])
+  );
+
+  const handleDelete = async (id) => {
+    try {
+      await api.notifications.delete(id);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    } catch (error) {
+      console.error('Delete notification error:', error);
+    }
+  };
+
+  const handleClearAll = () => {
+    RNAlert.alert(
+      'Clear All Notifications',
+      'Are you sure you want to clear all notifications?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.notifications.deleteAll();
+              setNotifications([]);
+            } catch (error) {
+              console.error('Clear all error:', error);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const filteredNotifications = notifications.filter((notif) => {
     if (activeFilter === 'All') return true;
     if (activeFilter === 'Unread') return !notif.read;
@@ -101,53 +94,16 @@ export default function NotificationsScreen() {
     return true;
   });
 
-  // Count unread notifications
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const handleToggleRead = (id) => {
-    setNotifications((prev) =>
-      prev.map((notif) =>
-        notif.id === id ? { ...notif, read: !notif.read } : notif
-      )
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={COLORS.blue} />
+        <Text style={styles.loadingText}>Loading notifications...</Text>
+      </View>
     );
-  };
-
-  const handleMarkAllRead = () => {
-    setNotifications((prev) =>
-      prev.map((notif) => ({ ...notif, read: true }))
-    );
-  };
-
-  const handleClearAll = () => {
-    Alert.alert(
-      'Clear All Notifications',
-      'Are you sure you want to clear all notifications? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear All',
-          style: 'destructive',
-          onPress: () => setNotifications([]),
-        },
-      ]
-    );
-  };
-
-  const handleDeleteNotification = (id) => {
-    Alert.alert(
-      'Delete Notification',
-      'Are you sure you want to delete this notification?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () =>
-            setNotifications((prev) => prev.filter((n) => n.id !== id)),
-        },
-      ]
-    );
-  };
+  }
 
   return (
     <View style={styles.container}>
@@ -160,17 +116,6 @@ export default function NotificationsScreen() {
               <Text style={styles.headerSubtitle}>
                 {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
               </Text>
-            )}
-          </View>
-          <View style={styles.headerActions}>
-            {notifications.length > 0 && unreadCount > 0 && (
-              <TouchableOpacity
-                style={styles.markAllButton}
-                onPress={handleMarkAllRead}
-              >
-                <Octicons name="check" size={16} color={COLORS.blue} />
-                <Text style={styles.markAllText}>Mark all read</Text>
-              </TouchableOpacity>
             )}
           </View>
         </View>
@@ -241,12 +186,11 @@ export default function NotificationsScreen() {
       ) : (
         <FlatList
           data={filteredNotifications}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id?.toString()}
           renderItem={({ item }) => (
-            <NotificationItem
+            <SwipeableNotificationItem
               notification={item}
-              onToggleRead={handleToggleRead}
-              onDelete={handleDeleteNotification}
+              onDelete={handleDelete}
             />
           )}
           contentContainerStyle={styles.listContent}
@@ -268,10 +212,13 @@ export default function NotificationsScreen() {
   );
 }
 
-/* ==================== NOTIFICATION ITEM COMPONENT ==================== */
+/* ==================== SWIPEABLE NOTIFICATION ITEM ==================== */
 
-const NotificationItem = ({ notification, onToggleRead, onDelete }) => {
+const SwipeableNotificationItem = ({ notification, onDelete }) => {
   const { id, type, title, message, timestamp, read } = notification;
+  const translateX = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+  const panStartX = useRef(0);
 
   const getIconConfig = () => {
     switch (type) {
@@ -304,11 +251,57 @@ const NotificationItem = ({ notification, onToggleRead, onDelete }) => {
 
   const iconConfig = getIconConfig();
 
+  const handleSwipeStart = (event) => {
+    panStartX.current = event.nativeEvent.pageX;
+  };
+
+  const handleSwipeMove = (event) => {
+    const deltaX = event.nativeEvent.pageX - panStartX.current;
+    translateX.setValue(deltaX);
+  };
+
+  const handleSwipeEnd = (event) => {
+    const deltaX = event.nativeEvent.pageX - panStartX.current;
+    
+    // If swiped more than 100px in either direction, delete
+    if (Math.abs(deltaX) > 100) {
+      Animated.parallel([
+        Animated.timing(translateX, {
+          toValue: deltaX > 0 ? 500 : -500,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        onDelete(id);
+      });
+    } else {
+      // Snap back to original position
+      Animated.spring(translateX, {
+        toValue: 0,
+        useNativeDriver: true,
+        friction: 7,
+      }).start();
+    }
+  };
+
   return (
-    <TouchableOpacity
-      style={[styles.notificationItem, !read && styles.notificationUnread]}
-      onPress={() => onToggleRead(id)}
-      activeOpacity={0.7}
+    <Animated.View
+      style={[
+        styles.notificationItem,
+        !read && styles.notificationUnread,
+        {
+          opacity,
+          transform: [{ translateX }],
+        },
+      ]}
+      onTouchStart={handleSwipeStart}
+      onTouchMove={handleSwipeMove}
+      onTouchEnd={handleSwipeEnd}
     >
       {/* Unread Indicator */}
       {!read && <View style={styles.unreadIndicator} />}
@@ -336,26 +329,11 @@ const NotificationItem = ({ notification, onToggleRead, onDelete }) => {
         </Text>
       </View>
 
-      {/* Actions */}
-      <View style={styles.notificationActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => onToggleRead(id)}
-        >
-          <Octicons
-            name={read ? 'mail' : 'mail'}
-            size={18}
-            color={read ? COLORS.primary : COLORS.blue}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => onDelete(id)}
-        >
-          <Octicons name="trash" size={18} color={COLORS.danger} />
-        </TouchableOpacity>
+      {/* Swipe Indicator */}
+      <View style={styles.swipeHint}>
+        <Text style={styles.swipeHintText}>Swipe to delete</Text>
       </View>
-    </TouchableOpacity>
+    </Animated.View>
   );
 };
 
@@ -365,6 +343,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.primary,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontFamily: 'Regular',
+    fontSize: SIZES.small,
+    color: COLORS.gray,
   },
 
   /* Header */
@@ -390,24 +380,6 @@ const styles = StyleSheet.create({
     fontSize: SIZES.xsmall,
     color: COLORS.gray,
     marginTop: 2,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  markAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: COLORS.accent,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  markAllText: {
-    fontFamily: 'Medium',
-    fontSize: SIZES.xsmall,
-    color: COLORS.blue,
   },
 
   /* Filters */
@@ -526,16 +498,17 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     lineHeight: 18,
   },
-  notificationActions: {
-    flexDirection: 'column',
-    gap: 8,
-    justifyContent: 'center',
+  swipeHint: {
+    position: 'absolute',
+    right: 16,
+    top: '50%',
+    marginTop: -10,
+    opacity: 0.3,
   },
-  actionButton: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
+  swipeHintText: {
+    fontFamily: 'Regular',
+    fontSize: 10,
+    color: COLORS.gray,
   },
 
   /* Empty State */

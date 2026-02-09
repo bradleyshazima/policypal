@@ -184,12 +184,12 @@ export default function ClientDetailScreen({ navigation, route }) {
           <>
             <InfoCard title="Contact Information">
               <InfoRow label="Phone" value={client.phone || 'N/A'} />
-              {client.alternative_phone && (
-                <InfoRow label="Alt. Phone" value={client.alternative_phone} />
+              {client.alt_phone && (
+                <InfoRow label="Alt. Phone" value={client.alt_phone} />
               )}
               {client.email && <InfoRow label="Email" value={client.email} />}
-              {client.physical_address && (
-                <InfoRow label="Address" value={client.physical_address} />
+              {client.address && (
+                <InfoRow label="Address" value={client.address} />
               )}
               {client.id_number && (
                 <InfoRow label="ID Number" value={client.id_number} />
@@ -207,8 +207,8 @@ export default function ClientDetailScreen({ navigation, route }) {
               {client.car_color && (
                 <InfoRow label="Color" value={client.car_color} />
               )}
-              {client.year_of_manufacture && (
-                <InfoRow label="Year" value={client.year_of_manufacture} />
+              {client.car_year && (
+                <InfoRow label="Year" value={client.car_year} />
               )}
               {client.vin_number && (
                 <InfoRow label="VIN" value={client.vin_number} />
@@ -224,10 +224,10 @@ export default function ClientDetailScreen({ navigation, route }) {
                 label="Company" 
                 value={client.insurance_company || 'N/A'} 
               />
-              {client.premium_amount && (
+              {client.coverage_amount && (
                 <InfoRow 
                   label="Premium" 
-                  value={`${client.currency || ''} ${client.premium_amount}`} 
+                  value={`${client.currency || ''} ${client.coverage_amount}`} 
                 />
               )}
               {client.start_date && (
