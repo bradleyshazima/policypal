@@ -6,7 +6,7 @@ exports.getPlans = async (req, res) => {
     const { data: plans, error } = await supabase
       .from('subscription_plans')
       .select('*')
-      .order('price', { ascending: true });
+      .order('price_monthly', { ascending: true });
 
     if (error) throw error;
 
@@ -86,7 +86,7 @@ exports.createSubscription = async (req, res) => {
       .from('subscriptions')
       .insert([{
         user_id: userId,
-        subscription_plan_id: planId,
+        plan_id: planId,
         status: 'pending_payment',
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),

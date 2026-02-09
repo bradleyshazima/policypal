@@ -82,14 +82,14 @@ class SMSService {
         // Get user's quota
         const { data: user } = await supabase
           .from('users')
-          .select('subscription_plan_id')
+          .select('plan_id')
           .eq('id', userId)
           .single();
 
         const { data: plan } = await supabase
           .from('subscription_plans')
           .select('sms_quota')
-          .eq('id', user.subscription_plan_id)
+          .eq('id', user.plan_id)
           .single();
 
         // Create new

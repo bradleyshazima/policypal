@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,43 +6,124 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Octicons, FontAwesome } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, SIZES } from '../../constants/theme';
 import Button from '../../components/common/Button';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 
 export default function SubscriptionScreen({ navigation }) {
+  const { user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState(null);
-  const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' or 'yearly'
-  
-  // Trial info
-  const daysRemaining = 5;
-  const isOnTrial = true;
-  const currentPlan = 'Trial';
+  const [billingCycle, setBillingCycle] = useState('monthly');
+  const [plans, setPlans] = useState([]);
+  const [currentSubscription, setCurrentSubscription] = useState(null);
+  const [trialInfo, setTrialInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const handleSelectPlan = (planName) => {
-    setSelectedPlan(planName);
+  const fetchSubscriptionData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch plans and current subscription in parallel
+      const [plansData, subscriptionData] = await Promise.all([
+        api.subscription.getPlans(),
+        api.subscription.getCurrent().catch(() => null),
+      ]);
+
+      setPlans(plansData.plans || []);
+      setCurrentSubscription(subscriptionData?.subscription || null);
+      setTrialInfo(subscriptionData?.trial || null);
+    } catch (error) {
+      console.error('Fetch subscription data error:', error);
+      Alert.alert('Error', 'Failed to load subscription information');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSubscriptionData();
+  }, []);
+
+  // Refresh when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchSubscriptionData();
+    }, [])
+  );
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchSubscriptionData();
+  };
+
+  const formatPrice = (amount) => {
+    if (!amount) return 'KES 0';
+    return `KES ${parseFloat(amount).toLocaleString('en-KE', { 
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    })}`;
+  };
+
+  const calculateYearlyPrice = (monthlyPrice) => {
+    // If yearly price is provided in DB, use it
+    // Otherwise calculate with 20% discount
+    const yearly = monthlyPrice * 12 * 0.8; // 20% discount
+    return yearly;
+  };
+
+  const handleSelectPlan = async (plan) => {
+    if (plan.name === 'Trial') {
+      Alert.alert(
+        'Trial Plan',
+        'You are already on or have completed your trial period.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    setSelectedPlan(plan.id);
     Alert.alert(
       'Select Plan',
-      `You've selected the ${planName} plan. Proceed to payment?`,
+      `You've selected the ${plan.name} plan (${billingCycle === 'monthly' ? 'Monthly' : 'Yearly'}). Proceed to payment?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue', onPress: () => handlePayment(planName) },
+        { text: 'Continue', onPress: () => handlePayment(plan) },
       ]
     );
   };
 
-  const handlePayment = (planName) => {
-    Alert.alert(
-      'Choose Payment Method',
-      `Pay for ${planName}`,
-      [
-        { text: 'Credit/Debit Card', onPress: () => console.log('Card payment') },
-        { text: 'M-Pesa', onPress: () => console.log('M-Pesa payment') },
-        { text: 'PayPal', onPress: () => console.log('PayPal payment') },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+  const handlePayment = async (plan) => {
+    try {
+      // Create subscription
+      const response = await api.subscription.create({
+        planId: plan.id,
+        billingCycle: billingCycle,
+      });
+
+      if (response.paymentRequired) {
+        // Navigate to payment screen or show payment options
+        Alert.alert(
+          'Choose Payment Method',
+          `Pay for ${plan.name} - ${billingCycle === 'monthly' ? formatPrice(plan.price_monthly) : formatPrice(plan.price_yearly)}`,
+          [
+            { text: 'Credit/Debit Card', onPress: () => console.log('Card payment') },
+            { text: 'M-Pesa', onPress: () => console.log('M-Pesa payment') },
+            { text: 'Cancel', style: 'cancel' },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      Alert.alert('Error', error.message || 'Failed to process payment');
+    }
   };
 
   const handleContactSales = () => {
@@ -53,11 +134,34 @@ export default function SubscriptionScreen({ navigation }) {
     );
   };
 
+  if (loading && !refreshing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.blue} />
+        <Text style={styles.loadingText}>Loading subscription plans...</Text>
+      </View>
+    );
+  }
+
+  const isOnTrial = trialInfo?.status === 'trial';
+  const daysRemaining = trialInfo?.daysRemaining || 0;
+  const currentPlanName = currentSubscription?.subscription_plans?.name || (isOnTrial ? 'Trial' : null);
+
+  // Sort plans by price for display
+  const sortedPlans = [...plans].sort((a, b) => {
+    const priceA = billingCycle === 'monthly' ? a.price_monthly : a.price_yearly;
+    const priceB = billingCycle === 'monthly' ? b.price_monthly : b.price_yearly;
+    return priceA - priceB;
+  });
+
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
     >
       {/* ==================== TRIAL STATUS CARD ==================== */}
       {isOnTrial && (
@@ -75,7 +179,7 @@ export default function SubscriptionScreen({ navigation }) {
 
           <Text style={styles.trialTitle}>Enjoying PolicyPal?</Text>
           <Text style={styles.trialDescription}>
-            Your trial expires in {daysRemaining} days. After that, you'll need to upgrade to continue using all features.
+            Your trial expires in {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'}. After that, you'll need to upgrade to continue using all features.
           </Text>
 
           <View style={styles.trialFeatures}>
@@ -86,7 +190,7 @@ export default function SubscriptionScreen({ navigation }) {
 
           <Button
             title="Upgrade Now - Save 20%"
-            onPress={() => console.log('Upgrade')}
+            onPress={() => setBillingCycle('yearly')}
             style={styles.upgradeButton}
             textStyle={{ color: COLORS.blue }}
           />
@@ -139,81 +243,67 @@ export default function SubscriptionScreen({ navigation }) {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Choose Your Plan</Text>
 
-        {/* FREE TRIAL */}
-        <PricingCard
-          name="Free Trial"
-          price="$0"
-          period="7 days"
-          description="Perfect for getting started"
-          features={[
-            { text: 'Up to 10 clients', included: true },
-            { text: '50 SMS/month', included: true },
-            { text: 'Basic reminders', included: true },
-            { text: 'Email support', included: false },
-            { text: 'WhatsApp integration', included: false },
-          ]}
-          buttonText="Start Free Trial"
-          onPress={() => handleSelectPlan('Free Trial')}
-          isCurrentPlan={currentPlan === 'Trial'}
-        />
+        {sortedPlans.map((plan, index) => {
+          const price = billingCycle === 'monthly' ? plan.price_monthly : plan.price_yearly;
+          const features = plan.features || [];
+          
+          // Skip trial plan in the list (it's shown in banner)
+          if (plan.name === 'Trial') return null;
 
-        {/* BASIC PLAN */}
-        <PricingCard
-          name="Basic"
-          price={billingCycle === 'monthly' ? '$9.99' : '$95.90'}
-          period={billingCycle === 'monthly' ? '/month' : '/year'}
-          description="For small agencies"
-          features={[
-            { text: 'Up to 50 clients', included: true },
-            { text: '200 SMS/month', included: true },
-            { text: 'All reminder types', included: true },
-            { text: 'Email support', included: true },
-            { text: 'WhatsApp integration', included: false },
-            { text: 'Custom branding', included: false },
-          ]}
-          buttonText="Select Basic"
-          onPress={() => handleSelectPlan('Basic')}
-          isCurrentPlan={currentPlan === 'Basic'}
-        />
+          // Determine if this is the professional/popular plan
+          const isPopular = plan.name.toLowerCase().includes('professional');
+          const isEnterprise = plan.name.toLowerCase().includes('enterprise');
+          const isCurrentPlan = currentPlanName === plan.name;
 
-        {/* PROFESSIONAL PLAN - POPULAR */}
-        <PricingCard
-          name="Professional"
-          price={billingCycle === 'monthly' ? '$24.99' : '$239.90'}
-          period={billingCycle === 'monthly' ? '/month' : '/year'}
-          description="Most popular for growing agencies"
-          features={[
-            { text: 'Unlimited clients', included: true },
-            { text: '1,000 SMS/month', included: true },
-            { text: 'WhatsApp integration', included: true },
-            { text: 'Custom branding', included: true },
-            { text: 'Priority support', included: true },
-            { text: 'Advanced analytics', included: true },
-          ]}
-          buttonText="Select Professional"
-          onPress={() => handleSelectPlan('Professional')}
-          isPopular
-          isCurrentPlan={currentPlan === 'Professional'}
-        />
+          // Format features array
+          const rawFeatures = Array.isArray(plan.features) ? plan.features : [];
 
-        {/* ENTERPRISE PLAN */}
-        <PricingCard
-          name="Enterprise"
-          price="Custom"
-          period="pricing"
-          description="For large agencies & teams"
-          features={[
-            { text: 'Everything in Professional', included: true },
-            { text: 'Multiple agents/users', included: true },
-            { text: 'API access', included: true },
-            { text: 'Dedicated account manager', included: true },
-            { text: 'Custom integrations', included: true },
-            { text: 'SLA guarantee', included: true },
-          ]}
-          buttonText="Contact Sales"
-          onPress={handleContactSales}
-          isEnterprise
-        />
+          const formattedFeatures = [
+            { 
+              text: plan.max_clients 
+                ? `Up to ${plan.max_clients} clients` 
+                : 'Unlimited clients', 
+              included: true 
+            },
+            { 
+              text: plan.sms_quota 
+                ? `${plan.sms_quota.toLocaleString()} SMS/month` 
+                : 'Unlimited SMS', 
+              included: true 
+            },
+            // Use rawFeatures here instead of features
+            ...rawFeatures.map(feature => ({
+              text: typeof feature === 'string' ? feature : feature.text,
+              included: typeof feature === 'string' ? true : feature.included !== false,
+            }))
+          ];
+
+          return (
+            <PricingCard
+              key={plan.id}
+              name={plan.name}
+              price={formatPrice(price)}
+              period={billingCycle === 'monthly' ? '/month' : '/year'}
+              description={plan.description || ''}
+              features={formattedFeatures}
+              buttonText={isEnterprise ? 'Contact Sales' : `Select ${plan.name}`}
+              onPress={() => isEnterprise ? handleContactSales() : handleSelectPlan(plan)}
+              isPopular={isPopular}
+              isEnterprise={isEnterprise}
+              isCurrentPlan={isCurrentPlan}
+            />
+          );
+        })}
+
+        {sortedPlans.length === 0 && (
+          <View style={styles.emptyState}>
+            <Octicons name="package" size={64} color={COLORS.gray} opacity={0.5} />
+            <Text style={styles.emptyTitle}>No Plans Available</Text>
+            <Text style={styles.emptyMessage}>
+              Please check back later or contact support
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* ==================== PAYMENT METHODS ==================== */}
@@ -223,7 +313,6 @@ export default function SubscriptionScreen({ navigation }) {
         <View style={styles.paymentMethods}>
           <PaymentMethod icon="credit-card" label="Card" />
           <PaymentMethod icon="device-mobile" label="M-Pesa" />
-          <PaymentMethod icon="paypal" label="PayPal" fontAwesome />
         </View>
       </View>
 
@@ -360,6 +449,18 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontFamily: 'Regular',
+    fontSize: SIZES.small,
+    color: COLORS.gray,
+  },
 
   /* Trial Card */
   trialCard: {
@@ -435,7 +536,6 @@ const styles = StyleSheet.create({
   },
   upgradeButton: {
     backgroundColor: COLORS.white,
-    color:COLORS.blue
   },
   continueTrialButton: {
     alignItems: 'center',
@@ -554,7 +654,7 @@ const styles = StyleSheet.create({
   },
   priceAmount: {
     fontFamily: 'Bold',
-    fontSize: 36,
+    fontSize: 28,
     color: COLORS.blue,
   },
   pricePeriod: {
@@ -644,5 +744,25 @@ const styles = StyleSheet.create({
     fontFamily: 'Regular',
     fontSize: SIZES.xsmall,
     color: COLORS.gray,
+  },
+
+  /* Empty State */
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    fontFamily: 'SemiBold',
+    fontSize: SIZES.large,
+    color: COLORS.black,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyMessage: {
+    fontFamily: 'Regular',
+    fontSize: SIZES.small,
+    color: COLORS.gray,
+    textAlign: 'center',
   },
 });
