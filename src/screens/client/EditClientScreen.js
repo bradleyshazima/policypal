@@ -5,6 +5,11 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Modal,
+  FlatList,
+  TouchableWithoutFeedback
 } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { COLORS, SIZES } from '../../constants/theme';
@@ -13,6 +18,30 @@ import Button from '../../components/common/Button';
 import { Octicons } from '@expo/vector-icons';
 import Alert from '../../components/common/Alert';
 import api from '../../services/api';
+
+// --- Static Data for Dropdowns ---
+const COUNTRIES = [
+  { name: 'Kenya', code: '+254' },
+  { name: 'Uganda', code: '+256' },
+  { name: 'Tanzania', code: '+255' },
+  { name: 'Rwanda', code: '+250' },
+  { name: 'Ethiopia', code: '+251' },
+  { name: 'South Sudan', code: '+211' },
+  { name: 'Somalia', code: '+252' },
+];
+
+const INSURANCE_TYPES = ['Comprehensive', 'Third Party'];
+
+const FREQUENCIES = [
+  { label: 'Monthly', value: 'Monthly', months: 1 },
+  { label: 'Quarterly', value: 'Quarterly', months: 3 },
+  { label: 'Half-Yearly', value: 'Half-Yearly', months: 6 },
+  { label: 'Yearly', value: 'Yearly', months: 12 },
+];
+
+// Generate years for picker
+const currentYear = new Date().getFullYear();
+const YEARS = Array.from({ length: 50 }, (_, i) => (currentYear - i).toString());
 
 export default function EditClientScreen({ navigation, route }) {
   const { clientId } = route.params;
@@ -23,47 +52,99 @@ export default function EditClientScreen({ navigation, route }) {
   const [showAlert, setShowAlert] = useState(false);
   const [alertConfig, setAlertConfig] = useState({});
 
+  // Modal State
+  const [modalType, setModalType] = useState(null);
+
   /* ========================
-     Personal Info
+      Personal Info
   ======================== */
   const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [altPhone, setAltPhone] = useState('');
+  const [fullNameError, setFullNameError] = useState('');
+
+  // Phone Split State
+  const [phoneCode, setPhoneCode] = useState('+254');
+  const [phoneNumber, setPhoneNumber] = useState('');
+
+  const [altPhoneCode, setAltPhoneCode] = useState('+254');
+  const [altPhoneNumber, setAltPhoneNumber] = useState('');
+
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [idNumber, setIdNumber] = useState('');
 
   /* ========================
-     Vehicle Info
+      Vehicle Info
   ======================== */
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
-  const [year, setYear] = useState('');
+  const [year, setYear] = useState(''); // Picker
   const [plate, setPlate] = useState('');
   const [vin, setVin] = useState('');
   const [color, setColor] = useState('');
 
   /* ========================
-     Insurance Info
+      Insurance Info
   ======================== */
-  const [insuranceType, setInsuranceType] = useState('');
+  const [insuranceType, setInsuranceType] = useState(''); // Picker
   const [company, setCompany] = useState('');
   const [policyNumber, setPolicyNumber] = useState('');
   const [premium, setPremium] = useState('');
-  const [currency, setCurrency] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [paymentFrequency, setPaymentFrequency] = useState('');
+  const [currency, setCurrency] = useState('KES');
+  
+  const [startDate, setStartDate] = useState(''); // Picker (YYYY-MM-DD)
+  const [expiryDate, setExpiryDate] = useState(''); // Auto-calculated
+  const [paymentFrequency, setPaymentFrequency] = useState(''); // Object {label, value, months}
 
   /* ========================
-     Reminder Settings
+      Reminder Settings
   ======================== */
   const [remindersEnabled, setRemindersEnabled] = useState(true);
   const [customMessage, setCustomMessage] = useState('');
 
+  // --- Initial Data Fetch ---
   useEffect(() => {
     fetchClientData();
   }, [clientId]);
+
+  // --- Auto-Calculate Expiry ---
+  useEffect(() => {
+    // Only calculate if we are not currently loading the initial data to avoid overwriting existing
+    if (!loading && startDate && paymentFrequency) {
+      calculateExpiry(startDate, paymentFrequency.months || 12);
+      markAsChanged();
+    }
+  }, [startDate, paymentFrequency]);
+
+  const calculateExpiry = (startStr, monthsToAdd) => {
+    const dateParts = startStr.split('-');
+    if (dateParts.length !== 3) return;
+    
+    const d = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+    d.setMonth(d.getMonth() + monthsToAdd);
+    
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    setExpiryDate(`${y}-${m}-${day}`);
+  };
+
+  const parsePhoneForDisplay = (fullNumber) => {
+    if (!fullNumber) return { code: '+254', number: '' };
+    const strNum = fullNumber.toString();
+    
+    // Try to match known country codes
+    for (let c of COUNTRIES) {
+      const cleanCode = c.code.replace('+', '');
+      if (strNum.startsWith(cleanCode)) {
+        return {
+          code: c.code,
+          number: strNum.substring(cleanCode.length)
+        };
+      }
+    }
+    // Fallback default
+    return { code: '+254', number: strNum };
+  };
 
   const fetchClientData = async () => {
     try {
@@ -71,17 +152,25 @@ export default function EditClientScreen({ navigation, route }) {
       const data = await api.clients.getById(clientId);
       const client = data.client;
 
-      // Populate form with client data
+      // Populate form
       setFullName(client.full_name || '');
-      setPhone(client.phone || '');
-      setAltPhone(client.alt_phone || '');
+      
+      // Parse Phones
+      const p1 = parsePhoneForDisplay(client.phone);
+      setPhoneCode(p1.code);
+      setPhoneNumber(p1.number);
+
+      const p2 = parsePhoneForDisplay(client.alt_phone);
+      setAltPhoneCode(p2.code);
+      setAltPhoneNumber(p2.number);
+
       setEmail(client.email || '');
       setAddress(client.address || '');
       setIdNumber(client.id_number || '');
       
       setMake(client.car_make || '');
       setModel(client.car_model || '');
-      setYear(client.car_year || '');
+      setYear(client.car_year ? client.car_year.toString() : '');
       setPlate(client.plate_number || '');
       setVin(client.vin_number || '');
       setColor(client.car_color || '');
@@ -89,14 +178,20 @@ export default function EditClientScreen({ navigation, route }) {
       setInsuranceType(client.insurance_type || '');
       setCompany(client.insurance_company || '');
       setPolicyNumber(client.policy_number || '');
-      setPremium(client.coverage_amount || '');
+      setPremium(client.coverage_amount ? client.coverage_amount.toString() : '');
       setCurrency(client.currency || 'KES');
+      
       setStartDate(client.start_date || '');
       setExpiryDate(client.expiry_date || '');
-      setPaymentFrequency(client.payment_frequency || '');
+      
+      // Map frequency string back to object
+      const freqObj = FREQUENCIES.find(f => f.value === client.payment_frequency);
+      setPaymentFrequency(freqObj || { label: client.payment_frequency, value: client.payment_frequency, months: 12 });
       
       setRemindersEnabled(client.reminders_enabled || false);
       setCustomMessage(client.custom_message || '');
+
+      setHasChanges(false); // Reset changes after load
     } catch (error) {
       console.error('Fetch client error:', error);
       setAlertConfig({
@@ -111,17 +206,50 @@ export default function EditClientScreen({ navigation, route }) {
   };
 
   const markAsChanged = () => {
-    if (!hasChanges) setHasChanges(true);
+    if (!loading && !hasChanges) setHasChanges(true);
+  };
+
+  const handleFullNameChange = (text) => {
+    setFullName(text);
+    markAsChanged();
+    if (text.trim().split(' ').length < 2) {
+      setFullNameError('Add a last name');
+    } else {
+      setFullNameError('');
+    }
+  };
+
+  const formatPhoneForSave = (code, number) => {
+    if (!number) return null;
+    const cleanCode = code.replace('+', '');
+    const cleanNumber = number.startsWith('0') ? number.substring(1) : number;
+    return `${cleanCode}${cleanNumber}`;
   };
 
   const handleSave = async () => {
+    // Validation
+    if (!fullName.trim() || fullName.trim().split(' ').length < 2) {
+        setFullNameError('Add a last name');
+        setAlertConfig({ type: 'warning', title: 'Invalid Name', message: 'Please enter at least two names.' });
+        setShowAlert(true);
+        return;
+    }
+    if (!phoneNumber) {
+        setAlertConfig({ type: 'warning', title: 'Missing Info', message: 'Phone number is required.' });
+        setShowAlert(true);
+        return;
+    }
+
     setSaving(true);
 
     try {
+      const finalPhone = formatPhoneForSave(phoneCode, phoneNumber);
+      const finalAltPhone = formatPhoneForSave(altPhoneCode, altPhoneNumber);
+
       const updates = {
         full_name: fullName,
-        phone: phone,
-        alt_phone: altPhone || null,
+        phone: finalPhone,
+        alt_phone: finalAltPhone || null,
         email: email || null,
         address: address || null,
         id_number: idNumber || null,
@@ -138,7 +266,7 @@ export default function EditClientScreen({ navigation, route }) {
         currency: currency,
         start_date: startDate || null,
         expiry_date: expiryDate,
-        payment_frequency: paymentFrequency || null,
+        payment_frequency: paymentFrequency.value || null,
         reminders_enabled: remindersEnabled,
         custom_message: customMessage || null,
       };
@@ -153,10 +281,10 @@ export default function EditClientScreen({ navigation, route }) {
       });
       setShowAlert(true);
 
-      // Navigate back after short delay
       setTimeout(() => {
         navigation.goBack();
-      }, 1000);
+      }, 1500);
+
     } catch (error) {
       console.error('Update client error:', error);
       setAlertConfig({
@@ -207,6 +335,54 @@ export default function EditClientScreen({ navigation, route }) {
     }
   };
 
+  const DatePickerModal = ({ onClose, onSelect }) => {
+    const [dYear, setDYear] = useState(currentYear);
+    const [dMonth, setDMonth] = useState(new Date().getMonth() + 1);
+    const [dDay, setDDay] = useState(new Date().getDate());
+
+    const confirmDate = () => {
+      const mStr = String(dMonth).padStart(2, '0');
+      const dStr = String(dDay).padStart(2, '0');
+      onSelect(`${dYear}-${mStr}-${dStr}`);
+      onClose();
+    };
+
+    return (
+      <View style={styles.datePickerContainer}>
+        <Text style={styles.modalTitle}>Select Start Date</Text>
+        <View style={styles.dateRow}>
+          <Input 
+            value={String(dYear)} 
+            onChangeText={(t) => setDYear(t)} 
+            placeholder="YYYY" 
+            keyboardType="numeric"
+            containerStyle={{ width: 80 }}
+            inputStyle={{ textAlign: "center" }}
+          />
+
+          <Input 
+            value={String(dMonth)} 
+            onChangeText={(t) => setDMonth(t)} 
+            placeholder="MM" 
+            keyboardType="numeric"
+            containerStyle={{ width: 60 }}
+            inputStyle={{ textAlign: "center" }}
+          />
+
+          <Input 
+            value={String(dDay)} 
+            onChangeText={(t) => setDDay(t)} 
+            placeholder="DD" 
+            keyboardType="numeric"
+            containerStyle={{ width: 60 }}
+            inputStyle={{ textAlign: "center" }}
+          />
+        </View>
+        <Button title="Confirm Date" onPress={confirmDate} style={{marginTop: 10}} />
+      </View>
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -217,7 +393,11 @@ export default function EditClientScreen({ navigation, route }) {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+    >
       {/* ==================== HEADER INFO CARD ==================== */}
       <View style={styles.headerCard}>
         <View style={styles.avatar}>
@@ -239,45 +419,61 @@ export default function EditClientScreen({ navigation, route }) {
         showsVerticalScrollIndicator={false}
       >
         {/* ========================
-           Personal Information
+            Personal Information
         ======================== */}
         <Section title="Personal Information">
           <Input
             label="Full name *"
             value={fullName}
-            onChangeText={(text) => {
-              setFullName(text);
-              markAsChanged();
-            }}
+            onChangeText={handleFullNameChange}
             placeholder="Enter full name"
+            error={fullNameError}
           />
-          <Input
-            label="Phone number *"
-            value={phone}
-            onChangeText={(text) => {
-              setPhone(text);
-              markAsChanged();
-            }}
-            keyboardType="phone-pad"
-            placeholder="+254..."
-          />
-          <Input
-            label="Alternative phone number"
-            value={altPhone}
-            onChangeText={(text) => {
-              setAltPhone(text);
-              markAsChanged();
-            }}
-            keyboardType="phone-pad"
-            placeholder="+254..."
-          />
+
+          {/* Phone Number Split */}
+          <Text style={styles.inputLabel}>Phone number *</Text>
+          <View style={styles.phoneRow}>
+            <TouchableOpacity 
+              style={styles.countryPicker}
+              onPress={() => setModalType('country')}
+            >
+              <Text style={styles.pickerText}>{phoneCode}</Text>
+              <Octicons name="chevron-down" size={16} color={COLORS.gray} />
+            </TouchableOpacity>
+            
+            <Input 
+              containerStyle={styles.phoneInputContainer}
+              value={phoneNumber} 
+              onChangeText={(t) => { setPhoneNumber(t); markAsChanged(); }}
+              placeholder="7XX XXX XXX"
+              keyboardType="number-pad"
+            />
+          </View>
+
+          {/* Alt Phone Split */}
+          <Text style={styles.inputLabel}>Alternative phone</Text>
+          <View style={styles.phoneRow}>
+            <TouchableOpacity 
+              style={styles.countryPicker}
+              onPress={() => setModalType('altCountry')}
+            >
+              <Text style={styles.pickerText}>{altPhoneCode}</Text>
+              <Octicons name="chevron-down" size={16} color={COLORS.gray} />
+            </TouchableOpacity>
+            
+            <Input 
+              containerStyle={styles.phoneInputContainer}
+              value={altPhoneNumber} 
+              onChangeText={(t) => { setAltPhoneNumber(t); markAsChanged(); }}
+              placeholder="7XX XXX XXX"
+              keyboardType="number-pad"
+            />
+          </View>
+
           <Input
             label="Email address"
             value={email}
-            onChangeText={(text) => {
-              setEmail(text);
-              markAsChanged();
-            }}
+            onChangeText={(text) => { setEmail(text); markAsChanged(); }}
             autoCapitalize="none"
             keyboardType="email-address"
             placeholder="email@example.com"
@@ -285,165 +481,138 @@ export default function EditClientScreen({ navigation, route }) {
           <Input
             label="Physical address"
             value={address}
-            onChangeText={(text) => {
-              setAddress(text);
-              markAsChanged();
-            }}
+            onChangeText={(text) => { setAddress(text); markAsChanged(); }}
             placeholder="Enter address"
           />
           <Input
             label="ID / License number"
             value={idNumber}
-            onChangeText={(text) => {
-              setIdNumber(text);
-              markAsChanged();
-            }}
+            onChangeText={(text) => { setIdNumber(text); markAsChanged(); }}
             placeholder="Enter ID or license"
           />
         </Section>
 
         {/* ========================
-           Vehicle Information
+            Vehicle Information
         ======================== */}
         <Section title="Vehicle Information">
           <Input
             label="Car make *"
             value={make}
-            onChangeText={(text) => {
-              setMake(text);
-              markAsChanged();
-            }}
+            onChangeText={(text) => { setMake(text); markAsChanged(); }}
             placeholder="e.g., Toyota"
           />
           <Input
             label="Car model *"
             value={model}
-            onChangeText={(text) => {
-              setModel(text);
-              markAsChanged();
-            }}
+            onChangeText={(text) => { setModel(text); markAsChanged(); }}
             placeholder="e.g., Corolla"
           />
-          <Input
-            label="Year of manufacture"
-            value={year}
-            onChangeText={(text) => {
-              setYear(text);
-              markAsChanged();
-            }}
-            keyboardType="number-pad"
-            placeholder="YYYY"
-          />
+          
+          {/* Year Picker */}
+          <Text style={styles.inputLabel}>Year of manufacture</Text>
+          <TouchableOpacity 
+            style={styles.pickerInput}
+            onPress={() => setModalType('year')}
+          >
+            <Text style={[styles.pickerText, !year && { color: COLORS.gray }]}>
+              {year || 'Select Year'}
+            </Text>
+            <Octicons name="calendar" size={16} color={COLORS.gray} />
+          </TouchableOpacity>
+
           <Input
             label="Registration / Plate number"
             value={plate}
-            onChangeText={(text) => {
-              setPlate(text);
-              markAsChanged();
-            }}
+            onChangeText={(text) => { setPlate(text); markAsChanged(); }}
             placeholder="e.g., KAA 123A"
           />
           <Input
             label="VIN number"
             value={vin}
-            onChangeText={(text) => {
-              setVin(text);
-              markAsChanged();
-            }}
+            onChangeText={(text) => { setVin(text); markAsChanged(); }}
             placeholder="17-character VIN"
           />
           <Input
             label="Car color"
             value={color}
-            onChangeText={(text) => {
-              setColor(text);
-              markAsChanged();
-            }}
+            onChangeText={(text) => { setColor(text); markAsChanged(); }}
             placeholder="e.g., White"
           />
         </Section>
 
         {/* ========================
-           Insurance Details
+            Insurance Details
         ======================== */}
         <Section title="Insurance Details">
-          <Input
-            label="Insurance type *"
-            value={insuranceType}
-            onChangeText={(text) => {
-              setInsuranceType(text);
-              markAsChanged();
-            }}
-            placeholder="e.g., Comprehensive"
-          />
+          {/* Insurance Type Dropdown */}
+          <Text style={styles.inputLabel}>Insurance type *</Text>
+          <TouchableOpacity 
+            style={styles.pickerInput}
+            onPress={() => setModalType('insurance')}
+          >
+            <Text style={[styles.pickerText, !insuranceType && { color: COLORS.gray }]}>
+              {insuranceType || 'Select Type'}
+            </Text>
+            <Octicons name="chevron-down" size={16} color={COLORS.gray} />
+          </TouchableOpacity>
+
           <Input
             label="Insurance company"
             value={company}
-            onChangeText={(text) => {
-              setCompany(text);
-              markAsChanged();
-            }}
+            onChangeText={(text) => { setCompany(text); markAsChanged(); }}
             placeholder="e.g., Jubilee Insurance"
           />
           <Input
             label="Policy number"
             value={policyNumber}
-            onChangeText={(text) => {
-              setPolicyNumber(text);
-              markAsChanged();
-            }}
+            onChangeText={(text) => { setPolicyNumber(text); markAsChanged(); }}
             placeholder="Enter policy number"
           />
           <Input
-            label="Premium amount"
+            label="Premium amount (KES)"
             value={premium}
-            onChangeText={(text) => {
-              setPremium(text);
-              markAsChanged();
-            }}
+            onChangeText={(text) => { setPremium(text); markAsChanged(); }}
             keyboardType="numeric"
             placeholder="Enter amount"
           />
-          <Input
-            label="Currency"
-            value={currency}
-            onChangeText={(text) => {
-              setCurrency(text);
-              markAsChanged();
-            }}
-            placeholder="KES"
-          />
-          <Input
-            label="Start date"
-            value={startDate}
-            onChangeText={(text) => {
-              setStartDate(text);
-              markAsChanged();
-            }}
-            placeholder="YYYY-MM-DD"
-          />
-          <Input
-            label="Renewal / Expiry date *"
-            value={expiryDate}
-            onChangeText={(text) => {
-              setExpiryDate(text);
-              markAsChanged();
-            }}
-            placeholder="YYYY-MM-DD"
-          />
-          <Input
-            label="Payment frequency"
-            value={paymentFrequency}
-            onChangeText={(text) => {
-              setPaymentFrequency(text);
-              markAsChanged();
-            }}
-            placeholder="e.g., Annual, Monthly"
-          />
+          
+          {/* Start Date Picker */}
+          <Text style={styles.inputLabel}>Start date *</Text>
+          <TouchableOpacity 
+            style={styles.pickerInput}
+            onPress={() => setModalType('date')}
+          >
+            <Text style={[styles.pickerText, !startDate && { color: COLORS.gray }]}>
+              {startDate || 'YYYY-MM-DD'}
+            </Text>
+            <Octicons name="calendar" size={16} color={COLORS.gray} />
+          </TouchableOpacity>
+
+          {/* Payment Frequency Dropdown */}
+          <Text style={styles.inputLabel}>Payment frequency *</Text>
+          <TouchableOpacity 
+            style={styles.pickerInput}
+            onPress={() => setModalType('frequency')}
+          >
+            <Text style={[styles.pickerText, !paymentFrequency && { color: COLORS.gray }]}>
+              {paymentFrequency.label || 'Select Frequency'}
+            </Text>
+            <Octicons name="chevron-down" size={16} color={COLORS.gray} />
+          </TouchableOpacity>
+
+          {/* Expiry Date (Read Only / Auto Calculated) */}
+          <View style={styles.readOnlyContainer}>
+            <Text style={styles.inputLabel}>Renewal / Expiry date</Text>
+            <View style={[styles.pickerInput, { backgroundColor: '#f0f0f0' }]}>
+              <Text style={styles.pickerText}>{expiryDate || '--'}</Text>
+              <Octicons name="lock" size={14} color={COLORS.gray} />
+            </View>
+          </View>
         </Section>
 
         {/* ========================
-           Reminder Settings
+            Reminder Settings
         ======================== */}
         <Section title="Reminder Settings">
           <TouchableOpacity
@@ -475,7 +644,7 @@ export default function EditClientScreen({ navigation, route }) {
         </Section>
 
         {/* ========================
-           Action Buttons
+            Action Buttons
         ======================== */}
         <View style={styles.actionsContainer}>
           <Button
@@ -512,24 +681,115 @@ export default function EditClientScreen({ navigation, route }) {
           if (alertConfig.type === 'danger' && alertConfig.title === 'Delete Client') {
             confirmDelete();
           } else if (alertConfig.type === 'warning') {
-            navigation.goBack();
+            if (alertConfig.title === 'Discard Changes?') {
+                navigation.goBack();
+            }
           }
           setShowAlert(false);
         }}
         onCancel={() => setShowAlert(false)}
       />
-    </View>
+
+      {/* ========================
+          Reusable Picker Modal
+      ======================== */}
+      <SelectionModal 
+        visible={modalType !== null}
+        onClose={() => setModalType(null)}
+      >
+        {modalType === 'country' && (
+          <FlatList
+            data={COUNTRIES}
+            keyExtractor={(item) => item.name}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.modalItem} onPress={() => { setPhoneCode(item.code); setModalType(null); markAsChanged(); }}>
+                <Text style={styles.modalItemText}>{item.name} ({item.code})</Text>
+              </TouchableOpacity>
+            )}
+          />
+        )}
+        {modalType === 'altCountry' && (
+          <FlatList
+            data={COUNTRIES}
+            keyExtractor={(item) => item.name}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.modalItem} onPress={() => { setAltPhoneCode(item.code); setModalType(null); markAsChanged(); }}>
+                <Text style={styles.modalItemText}>{item.name} ({item.code})</Text>
+              </TouchableOpacity>
+            )}
+          />
+        )}
+        {modalType === 'insurance' && (
+          <FlatList
+            data={INSURANCE_TYPES}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.modalItem} onPress={() => { setInsuranceType(item); setModalType(null); markAsChanged(); }}>
+                <Text style={styles.modalItemText}>{item}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        )}
+        {modalType === 'year' && (
+          <FlatList
+            data={YEARS}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.modalItem} onPress={() => { setYear(item); setModalType(null); markAsChanged(); }}>
+                <Text style={styles.modalItemText}>{item}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        )}
+        {modalType === 'frequency' && (
+          <FlatList
+            data={FREQUENCIES}
+            keyExtractor={(item) => item.label}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.modalItem} onPress={() => { setPaymentFrequency(item); setModalType(null); markAsChanged(); }}>
+                <Text style={styles.modalItemText}>{item.label}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        )}
+        {modalType === 'date' && (
+          <DatePickerModal 
+            onClose={() => setModalType(null)} 
+            onSelect={(d) => { setStartDate(d); markAsChanged(); }} 
+          />
+        )}
+      </SelectionModal>
+
+    </KeyboardAvoidingView>
   );
 }
 
 /* ========================
-   Reusable Section Wrapper
+   Reusable Components
 ======================== */
 const Section = ({ title, children }) => (
   <View style={styles.section}>
     <Text style={styles.sectionTitle}>{title}</Text>
     {children}
   </View>
+);
+
+const SelectionModal = ({ visible, onClose, children }) => (
+  <Modal visible={visible} transparent animationType="slide">
+    <TouchableWithoutFeedback onPress={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Option</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Octicons name="x" size={24} color={COLORS.black} />
+            </TouchableOpacity>
+          </View>
+          {children}
+        </View>
+      </View>
+    </TouchableWithoutFeedback>
+  </Modal>
 );
 
 /* ========================
@@ -630,4 +890,102 @@ const styles = StyleSheet.create({
     marginTop: 8,
     gap: 8,
   },
+  // Added from AddClientScreen for UI consistency
+  errorText: {
+    color: 'red',
+    fontSize: 10,
+    marginTop: -8,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  inputLabel: {
+    fontFamily: 'Regular',
+    fontSize: SIZES.small,
+    color: COLORS.gray,
+    marginBottom: 6,
+    marginLeft: 4,
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  countryPicker: {
+    width: '30%',
+    height: 50,
+    backgroundColor: COLORS.white,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.gray + '40',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+  },
+  phoneInputContainer: {
+    width: '68%',
+    marginBottom: 0, 
+  },
+  pickerInput: {
+    height: 50,
+    backgroundColor: COLORS.white,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.gray + '40',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  pickerText: {
+    fontFamily: 'Regular',
+    fontSize: SIZES.medium,
+    color: COLORS.black,
+  },
+  readOnlyContainer: {
+    opacity: 0.8,
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '60%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontFamily: 'Bold',
+    fontSize: SIZES.large,
+    marginBottom: 24,
+  },
+  modalItem: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalItemText: {
+    fontSize: SIZES.medium,
+    fontFamily: 'Regular',
+  },
+  // Custom Date Modal
+  datePickerContainer: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  dateRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+  }
 });

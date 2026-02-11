@@ -213,7 +213,7 @@ export default function DashboardScreen() {
         </View>
 
         {/* Bottom Spacing */}
-        <View style={{ height: 60 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );

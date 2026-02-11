@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   },
   error: {
     marginTop: 4,
-    fontSize: SIZES.small,
+    fontSize: SIZES.xsmall,
     color: COLORS.danger,
     fontFamily: 'Regular',
   },
