@@ -1,69 +1,60 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl
 } from 'react-native';
 import { Octicons } from '@expo/vector-icons';
 import { COLORS, SIZES } from '../../constants/theme';
-
-const PAYMENT_HISTORY = [
-  {
-    id: '1',
-    date: 'Jan 1, 2026',
-    amount: '$24.99',
-    plan: 'Professional Plan',
-    status: 'Completed',
-    method: 'Credit Card',
-    invoice: 'INV-2026-001',
-  },
-  {
-    id: '2',
-    date: 'Dec 1, 2025',
-    amount: '$24.99',
-    plan: 'Professional Plan',
-    status: 'Completed',
-    method: 'Credit Card',
-    invoice: 'INV-2025-012',
-  },
-  {
-    id: '3',
-    date: 'Nov 1, 2025',
-    amount: '$24.99',
-    plan: 'Professional Plan',
-    status: 'Completed',
-    method: 'M-Pesa',
-    invoice: 'INV-2025-011',
-  },
-  {
-    id: '4',
-    date: 'Oct 1, 2025',
-    amount: '$9.99',
-    plan: 'Basic Plan',
-    status: 'Completed',
-    method: 'Credit Card',
-    invoice: 'INV-2025-010',
-  },
-  {
-    id: '5',
-    date: 'Sep 15, 2025',
-    amount: '$9.99',
-    plan: 'Basic Plan',
-    status: 'Failed',
-    method: 'Credit Card',
-    invoice: 'INV-2025-009',
-  },
-];
+import api from '../../services/api';
 
 export default function PaymentHistoryScreen() {
-  const handleDownloadInvoice = (invoice) => {
-    console.log('Downloading invoice:', invoice);
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchHistory = async () => {
+    try {
+      // Replace with your real endpoint
+      const response = await api.subscription.getPaymentHistory();
+      setPayments(response || []);
+    } catch (error) {
+      console.error('Failed to fetch payments:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  const totalPaid = PAYMENT_HISTORY.filter(p => p.status === 'Completed')
-    .reduce((sum, p) => sum + parseFloat(p.amount.replace('$', '')), 0);
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchHistory();
+  };
+
+  const handleDownloadInvoice = (invoice) => {
+    console.log('Downloading invoice:', invoice);
+    // Add logic to open PDF URL from backend
+  };
+
+  const totalPaid = payments
+    .filter(p => p.status === 'Completed' || p.status === 'success')
+    .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.blue} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -71,74 +62,76 @@ export default function PaymentHistoryScreen() {
       <View style={styles.summaryCard}>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>Total Paid</Text>
-          <Text style={styles.summaryValue}>${totalPaid.toFixed(2)}</Text>
+          <Text style={styles.summaryValue}>KES {totalPaid.toLocaleString()}</Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Total Transactions</Text>
-          <Text style={styles.summaryValue}>{PAYMENT_HISTORY.length}</Text>
+          <Text style={styles.summaryLabel}>Transactions</Text>
+          <Text style={styles.summaryValue}>{payments.length}</Text>
         </View>
       </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.blue} />
+        }
       >
-        {PAYMENT_HISTORY.map((payment) => (
+        {payments.map((payment) => (
           <View key={payment.id} style={styles.paymentCard}>
             <View style={styles.paymentHeader}>
               <View style={styles.paymentLeft}>
                 <View
                   style={[
                     styles.statusBadge,
-                    payment.status === 'Completed'
+                    (payment.status === 'Completed' || payment.status === 'success')
                       ? styles.completedBadge
                       : styles.failedBadge,
                   ]}
                 >
                   <Octicons
-                    name={payment.status === 'Completed' ? 'check-circle' : 'x-circle'}
+                    name={(payment.status === 'Completed' || payment.status === 'success') ? 'check-circle' : 'x-circle'}
                     size={14}
                     color={COLORS.white}
                   />
                   <Text style={styles.statusText}>{payment.status}</Text>
                 </View>
-                <Text style={styles.date}>{payment.date}</Text>
+                <Text style={styles.date}>
+                  {new Date(payment.created_at).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                  })}
+                </Text>
               </View>
-              <Text style={styles.amount}>{payment.amount}</Text>
+              <Text style={styles.amount}>KES {parseFloat(payment.amount).toLocaleString()}</Text>
             </View>
 
             <View style={styles.paymentDetails}>
-              <DetailRow icon="package" label="Plan" value={payment.plan} />
-              <DetailRow icon="credit-card" label="Method" value={payment.method} />
-              <DetailRow icon="file" label="Invoice" value={payment.invoice} />
+              <DetailRow icon="package" label="Plan" value={payment.plan_name || 'Subscription'} />
+              <DetailRow icon="credit-card" label="Method" value={payment.payment_method || 'M-Pesa'} />
+              <DetailRow icon="file" label="Invoice" value={payment.invoice_number || 'N/A'} />
             </View>
 
-            {payment.status === 'Completed' && (
+            {(payment.status === 'Completed' || payment.status === 'success') && (
               <TouchableOpacity
                 style={styles.downloadButton}
-                onPress={() => handleDownloadInvoice(payment.invoice)}
+                onPress={() => handleDownloadInvoice(payment.invoice_number)}
               >
                 <Octicons name="download" size={16} color={COLORS.blue} />
                 <Text style={styles.downloadText}>Download Invoice</Text>
               </TouchableOpacity>
             )}
-
-            {payment.status === 'Failed' && (
-              <TouchableOpacity style={styles.retryButton}>
-                <Octicons name="sync" size={16} color={COLORS.white} />
-                <Text style={styles.retryText}>Retry Payment</Text>
-              </TouchableOpacity>
-            )}
           </View>
         ))}
 
-        {PAYMENT_HISTORY.length === 0 && (
+        {payments.length === 0 && (
           <View style={styles.emptyState}>
             <Octicons name="inbox" size={64} color={COLORS.gray} opacity={0.5} />
             <Text style={styles.emptyTitle}>No Payment History</Text>
             <Text style={styles.emptyMessage}>
-              Your payment history will appear here
+              Your payment history will appear here once you make a transaction.
             </Text>
           </View>
         )}

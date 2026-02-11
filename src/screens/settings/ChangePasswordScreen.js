@@ -5,12 +5,17 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
 import { Octicons } from '@expo/vector-icons';
 import { COLORS, SIZES } from '../../constants/theme';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import Alert from '../../components/common/Alert';
+// Import the actual API service
+import api from '../../services/api'; 
 
 export default function ChangePasswordScreen({ navigation }) {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -32,7 +37,8 @@ export default function ChangePasswordScreen({ navigation }) {
 
   const strength = passwordStrength(newPassword);
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
+    // 1. Basic Validation
     if (!currentPassword || !newPassword || !confirmPassword) {
       setAlertConfig({
         type: 'warning',
@@ -46,7 +52,7 @@ export default function ChangePasswordScreen({ navigation }) {
     if (newPassword !== confirmPassword) {
       setAlertConfig({
         type: 'danger',
-        title: 'Passwords Don\'t Match',
+        title: "Passwords Don't Match",
         message: 'New password and confirmation password must match',
       });
       setShowAlert(true);
@@ -63,29 +69,50 @@ export default function ChangePasswordScreen({ navigation }) {
       return;
     }
 
+    // 2. Real API Call
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      // This calls the PUT /auth/change-password endpoint in your api.js
+      await api.auth.changePassword({
+        currentPassword: currentPassword,
+        newPassword: newPassword
+      });
+
       setAlertConfig({
         type: 'success',
         title: 'Password Changed',
-        message: 'Your password has been updated successfully',
+        message: 'Your password has been updated successfully. Please use your new password next time you log in.',
       });
       setShowAlert(true);
+      
+      // Reset form
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    }, 1500);
+    } catch (error) {
+      console.error('Change password error:', error);
+      setAlertConfig({
+        type: 'danger',
+        title: 'Update Failed',
+        message: error.message || 'Could not update password. Ensure your current password is correct.',
+      });
+      setShowAlert(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
+  <KeyboardAvoidingView 
+    style={{ flex: 1 }} 
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+  >
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      {/* Info Card */}
       <View style={styles.infoCard}>
         <Octicons name="shield-lock" size={24} color={COLORS.blue} />
         <Text style={styles.infoText}>
@@ -93,7 +120,6 @@ export default function ChangePasswordScreen({ navigation }) {
         </Text>
       </View>
 
-      {/* Password Requirements */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Password Requirements</Text>
         <View style={styles.card}>
@@ -116,11 +142,9 @@ export default function ChangePasswordScreen({ navigation }) {
         </View>
       </View>
 
-      {/* Password Form */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Change Password</Text>
         <View style={styles.card}>
-          {/* Current Password */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Current Password</Text>
             <View style={styles.passwordInput}>
@@ -144,7 +168,6 @@ export default function ChangePasswordScreen({ navigation }) {
             </View>
           </View>
 
-          {/* New Password */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>New Password</Text>
             <View style={styles.passwordInput}>
@@ -186,7 +209,6 @@ export default function ChangePasswordScreen({ navigation }) {
             )}
           </View>
 
-          {/* Confirm Password */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Confirm New Password</Text>
             <View style={styles.passwordInput}>
@@ -229,7 +251,6 @@ export default function ChangePasswordScreen({ navigation }) {
         </View>
       </View>
 
-      {/* Action Buttons */}
       <View style={styles.actions}>
         <Button
           title="Change Password"
@@ -240,13 +261,9 @@ export default function ChangePasswordScreen({ navigation }) {
           title="Cancel"
           variant="secondary"
           onPress={() => navigation.goBack()}
+          disabled={loading}
         />
       </View>
-
-      {/* Forgot Password Link */}
-      <TouchableOpacity style={styles.forgotLink}>
-        <Text style={styles.forgotText}>Forgot your current password?</Text>
-      </TouchableOpacity>
 
       <Alert
         visible={showAlert}
@@ -261,6 +278,7 @@ export default function ChangePasswordScreen({ navigation }) {
         }}
       />
     </ScrollView>
+</KeyboardAvoidingView>
   );
 }
 
@@ -346,6 +364,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 12,
     top: 16,
+    zIndex: 1,
   },
   strengthContainer: {
     marginTop: 8,
@@ -378,15 +397,5 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: 12,
-  },
-  forgotLink: {
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  forgotText: {
-    fontFamily: 'Medium',
-    fontSize: SIZES.small,
-    color: COLORS.blue,
-    textDecorationLine: 'underline',
   },
 });

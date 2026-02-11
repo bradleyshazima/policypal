@@ -12,6 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // New state for eye toggle
   const [loading, setLoading] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [alertConfig, setAlertConfig] = useState({});
@@ -59,6 +60,7 @@ export default function LoginScreen() {
     <SafeAreaView style={styles.main}>
       <Image source={require('../../assets/applogo.png')} style={{width: 80, height: 80, marginBottom:40}} />
       <Text style={{color:COLORS.black, fontSize:SIZES.xlarge, fontFamily:"Bold", width: '100%'}}>Login</Text>
+      
       <View style={{ width: '100%', marginTop: 20 }}>
         <Input
           label="Email"
@@ -68,17 +70,33 @@ export default function LoginScreen() {
           error={!emailValid && email ? 'Invalid email address' : null}
           keyboardType="email-address"
           autoCapitalize="none"
+          textContentType="emailAddress" // Hint for Google/iOS to suggest saved emails
         />
 
-        <Input
-          label="Password"
-          placeholder="Enter your password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry={true}
-        />
+        <View style={{ position: 'relative' }}>
+          <Input
+            label="Password"
+            placeholder="Enter your password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword} // Toggle dots vs text
+            autoCapitalize="none"
+            textContentType="password" // Hint for Google/iOS to suggest saved passwords
+          />
+          <TouchableOpacity 
+            style={styles.eyeIcon} 
+            onPress={() => setShowPassword(!showPassword)}
+          >
+            <Octicons 
+              name={showPassword ? "eye" : "eye-closed"} 
+              size={20} 
+              color={COLORS.gray} 
+            />
+          </TouchableOpacity>
+        </View>
       </View>
-      <View style={{width:'100%',display: 'flex',flexDirection:'row',alignItems:'center', justifyContent:'space-between'}}>
+
+      <View style={{width:'100%', display: 'flex', flexDirection:'row', alignItems:'center', justifyContent:'flex-end', marginBottom: 20}}>
         <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
           <Text style={{color:COLORS.blue, fontFamily:'Regular', fontSize:SIZES.small}}>Forgot password?</Text>
         </TouchableOpacity>
@@ -114,8 +132,14 @@ const styles = StyleSheet.create({
     height: '100%',
     display: 'flex',
     alignItems: 'center',
-    paddingTop: 120,
+    paddingTop: 80,
     paddingHorizontal: 32,
-    backgroundColor:COLORS.white,
+    backgroundColor: COLORS.white,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 15,
+    top: 40, // Adjust this so it centers vertically inside your Input box
+    zIndex: 1,
   },
 });

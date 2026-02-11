@@ -269,12 +269,6 @@ const fetchSubscription = async () => {
             onPress={() => navigation.navigate('PaymentHistory')}
             styles={styles}
           />
-          <MenuItem
-            icon="file"
-            label="Billing Information"
-            onPress={() => navigation.navigate('BillingInfo')}
-            styles={styles}
-          />
         </Section>
 
         {/* ==================== HELP & SUPPORT ==================== */}

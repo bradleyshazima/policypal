@@ -11,6 +11,8 @@ export default function Input({
   inputStyle,
   keyboardType,
   autoCapitalize = 'sentences',
+  // Use ...props to catch everything else (like secureTextEntry)
+  ...props 
 }) {
   return (
     <View style={[styles.container, containerStyle]}>
@@ -28,6 +30,8 @@ export default function Input({
           error && styles.inputError,
           inputStyle,
         ]}
+        // This spreads all remaining props to the native TextInput
+        {...props} 
       />
 
       {error && <Text style={styles.error}>{error}</Text>}
@@ -52,6 +56,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.lightGray,
     borderRadius: 12,
     paddingHorizontal: 14,
+    paddingRight: 45, 
     fontSize: 16,
     fontFamily: 'Regular',
     color: COLORS.black,

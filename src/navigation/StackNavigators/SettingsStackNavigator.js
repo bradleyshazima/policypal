@@ -11,7 +11,6 @@ import AboutAppScreen from '../../screens/settings/AboutAppScreen';
 import TermsScreen from '../../screens/settings/TermsScreen';
 import PrivacyPolicyScreen from '../../screens/settings/PrivacyPolicyScreen';
 import PaymentHistoryScreen from '../../screens/settings/PaymentHistoryScreen';
-import BillingInfoScreen from '../../screens/settings/BillingInfoScreen';
 import ChangePasswordScreen from '../../screens/settings/ChangePasswordScreen';
 import ContactSupportScreen from '../../screens/settings/ContactSupportScreen';
 import FAQsScreen from '../../screens/settings/FAQsScreen';
@@ -70,18 +69,6 @@ const SettingsStackNavigator = () => {
         component={AboutAppScreen}
         options={({ navigation }) => ({
           headerTitle: 'About',
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Octicons name="chevron-left" size={24} color={COLORS.blue} />
-            </TouchableOpacity>
-          ),
-        })}
-      />
-      <Stack.Screen 
-        name="BillingInfo" 
-        component={BillingInfoScreen}
-        options={({ navigation }) => ({
-          headerTitle: 'Billing Information',
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()}>
               <Octicons name="chevron-left" size={24} color={COLORS.blue} />

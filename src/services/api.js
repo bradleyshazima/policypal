@@ -201,6 +201,8 @@ class ApiService {
       }),
 
     getUsage: () => this.request('/subscription/usage'),
+
+    getPaymentHistory: () => this.request('/subscription/payments'),
   };
 
   // Notifications endpoints

@@ -45,7 +45,7 @@ exports.register = async (req, res) => {
         trial_start_date: trialStartDate.toISOString(),
         trial_end_date: trialEndDate.toISOString(),
         subscription_status: 'trial',
-        plan_id: trialPlan.id
+        subscription_plan_id: trialPlan.id
       }])
       .select()
       .single();
